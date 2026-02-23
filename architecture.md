@@ -1,0 +1,48 @@
+# Tank Tug Architecture
+
+Current architecture snapshot (systems + classes).  
+No changelog/history is kept in this file.
+
+## Structure (Tree View)
+```text
+Tank Tug
+├─ Toolchain System (Bun + Vite + TypeScript)
+│  ├─ package.json scripts
+│  │  ├─ dev / build
+│  │  └─ dev-nolog / build-nolog
+│  └─ vite configs
+│     ├─ vite/config.dev.mjs (port 8080)
+│     └─ vite/config.prod.mjs
+├─ Bootstrap System
+│  └─ tank-tug/src/main.ts
+│     └─ DOMContentLoaded -> StartGame('game-container')
+├─ Game Composition System
+│  └─ tank-tug/src/game/main.ts
+│     ├─ builds Phaser GameConfig (1024x768, parent game-container)
+│     └─ registers scene classes
+│        ├─ Boot
+│        ├─ Preloader
+│        ├─ MainMenu
+│        ├─ Game
+│        └─ GameOver
+├─ Scene Lifecycle System (tank-tug/src/game/scenes)
+│  ├─ class Boot extends Phaser.Scene
+│  │  ├─ preload: background (assets/bg.png)
+│  │  └─ create: start Preloader
+│  ├─ class Preloader extends Phaser.Scene
+│  │  ├─ init: loading UI + progress bar
+│  │  ├─ preload: logo (assets/logo.png)
+│  │  └─ create: start MainMenu
+│  ├─ class MainMenu extends Phaser.Scene
+│  │  └─ create: show menu, pointerdown -> Game
+│  ├─ class Game extends Phaser.Scene
+│  │  └─ create: placeholder gameplay, pointerdown -> GameOver
+│  └─ class GameOver extends Phaser.Scene
+│     └─ create: game over screen, pointerdown -> MainMenu
+└─ Asset Usage System
+   ├─ background: Boot preload -> used by Preloader/MainMenu/Game/GameOver
+   └─ logo: Preloader preload -> used by MainMenu
+```
+
+## Scene Flow
+`Boot -> Preloader -> MainMenu -> Game -> GameOver -> MainMenu`
