@@ -10,6 +10,8 @@ Tank Tug
 │  ├─ package.json scripts
 │  │  ├─ dev / build
 │  │  └─ dev-nolog / build-nolog
+│  ├─ runtime dependencies
+│  │  └─ Phaser 3
 │  └─ vite configs
 │     ├─ vite/config.dev.mjs (port 8080)
 │     └─ vite/config.prod.mjs
@@ -18,7 +20,7 @@ Tank Tug
 │     └─ DOMContentLoaded -> StartGame('game-container')
 ├─ Game Composition System
 │  └─ tank-tug/src/game/main.ts
-│     ├─ builds Phaser GameConfig (1024x768, parent game-container)
+│     ├─ builds Phaser GameConfig (1024x768, transparent canvas, parent game-container)
 │     └─ registers scene classes
 │        ├─ Boot
 │        ├─ Preloader
@@ -37,26 +39,52 @@ Tank Tug
 │  │  └─ create: show menu, pointerdown -> Game
 │  ├─ class Game extends Phaser.Scene
 │  │  ├─ create:
-│  │  │  ├─ initializes TugPrototypeSim
-│  │  │  ├─ sets race/hotkey controls
+│  │  │  ├─ initializes TugPrototypeSim (arena `9600x5600`, bucket size `240`)
+│  │  │  ├─ creates world/UI graphics layers + HUD/help overlays
+│  │  │  ├─ configures dual-camera render routing (world camera + fixed-zoom UI camera)
+│  │  │  ├─ initializes world camera to centered full-battlefield fit zoom based on viewport dimensions
+│  │  │  ├─ binds race/hotkey controls and camera pan/zoom input
 │  │  │  └─ starts deterministic prototype match
 │  │  └─ update:
 │  │     ├─ fixed-step simulation ticking
-│  │     ├─ primitive 2D battlefield rendering (square/circle units)
-│  │     └─ HUD updates (alive counts, core HP, capacity)
+│  │     ├─ camera controls (W/A/S/D pan, Q/E + wheel zoom)
+│  │     ├─ 2D battlefield drawing (arena, cores, 10x unit visuals, projectile trails, explosion pulses)
+│  │     └─ HUD updates (alive counts, core HP, capacity + bars)
 │  └─ class GameOver extends Phaser.Scene
 │     └─ create: game over screen, pointerdown -> MainMenu
-├─ Headless Simulation System (tank-tug/src/game/sim/prototypeSim.ts)
-│  ├─ class TugPrototypeSim
-│  │  ├─ SoA ECS-like storage (typed arrays per component)
-│  │  ├─ deterministic fixed-step loop
-│  │  ├─ seeded RNG-driven spawn variance
-│  │  ├─ 2D spatial bucket broadphase for target acquisition
-│  │  ├─ full XY movement and Euclidean target selection
-│  │  ├─ combat resolution (shield, armor, HP, core breach)
-│  │  └─ victory resolution (core destroy, wipe, tick cap tiebreak)
-│  └─ class XorShift32
-│     └─ deterministic RNG source for replayable simulation
+├─ 2D Match Rendering System (in Game scene)
+│  ├─ world graphics layer draws large arena bounds (`9600x5600`), cores, 10x unit circles, projectile spheres/trails, and transient explosion rings/fills
+│  ├─ UI graphics/text are rendered by a dedicated fixed-zoom UI camera
+│  └─ Phaser main camera stores clamped center/zoom state for world pan + zoom with dynamic world-fit minimum zoom
+├─ Headless Simulation System (tank-tug/src/game/sim)
+│  ├─ class TugPrototypeSim (prototypeSim.ts)
+│  │  ├─ facade API consumed by Game scene (`reset`, `step`, public SoA arrays + scalar state)
+│  │  ├─ wires resolved config + context + typed-array state + system modules
+│  │  └─ deterministic fixed-step orchestration pipeline (effects -> buckets -> melee-pressure seed -> unit loop with size-aware melee reach + local separation steering -> projectiles -> damage -> victory)
+│  ├─ Sim Data Modules
+│  │  ├─ simConstants.ts (combat/sim constants and CSV header schema)
+│  │  ├─ simTypes.ts (RaceId, config/state/context contracts including body radius + melee target pressure arrays)
+│  │  ├─ simConfig.ts (defaults + resolved derived config)
+│  │  ├─ simContext.ts (clamp/bucket helpers + core positions + seeded RNG context)
+│  │  └─ simState.ts (SoA allocation + reset lifecycle state)
+│  ├─ Catalog Module
+│  │  └─ unitArchetypeCatalog.ts
+│  │     └─ CSV roster ingestion/strict parsing/validation into race presets
+│  ├─ Systems Modules (src/game/sim/systems)
+│  │  ├─ class SpawnSystem (archetype validation, spawn bands, melee runtime range lock, body radius derivation, unit materialization)
+│  │  ├─ class SpatialBucketSystem (bucket broadphase rebuild)
+│  │  ├─ class EngagementPressureSystem (deterministic melee-attacker pressure tracking per target)
+│  │  ├─ class TargetingSystem (target validation/acquisition with tie-break rules + melee saturation scoring)
+│  │  ├─ class CombatSystem (goal-directed movement with local allied separation steering, attacks, projectiles, impacts, explosion effects)
+│  │  ├─ class DamageSystem (shield/HP application + death cleanup)
+│  │  └─ class VictorySystem (alive/capacity stats + finish resolution)
+│  ├─ class XorShift32 (rng.ts)
+│  │  └─ deterministic RNG source for replayable simulation
+│  └─ Simulation Tests
+│     ├─ src/game/sim/__tests__/prototypeSim.characterization.test.ts
+│     │  └─ replay determinism, scenario snapshots, and Game-contract field checks
+│     └─ src/game/sim/__tests__/prototypeSim.crowd-behavior.test.ts
+│        └─ anti-clump separation, focus-fire distribution, and size-vulnerability checks
 └─ Asset Usage System
    ├─ background: Boot preload -> used by Preloader/MainMenu
    └─ logo: Preloader preload -> used by MainMenu
