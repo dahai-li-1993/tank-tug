@@ -40,3 +40,11 @@ Support strategic build decisions through predictable economy and race-specific 
 - Underdog soft bonus for consecutive round losses.
 - Diminishing returns on stacking same upgrade category.
 - Core HP shield in early rounds to reduce instant blowouts.
+
+## Codex-Testable Requirements
+- `ECO-001`: new match starts with `300` credits.
+- `ECO-002`: base income grants `120` credits per round.
+- `ECO-003`: interest is `+1` per `50` saved credits, capped at `+20`.
+- `ECO-004`: win streak bonus is capped at `+30`, loss streak at `+20`.
+- `ECO-005`: Tier 2 unlock at round `4+`, Tier 3 unlock at round `8+`.
+- `ECO-006`: repeated same-category upgrades apply diminishing returns.

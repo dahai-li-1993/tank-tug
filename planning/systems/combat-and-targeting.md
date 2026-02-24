@@ -46,3 +46,13 @@ Define deterministic, readable combat behavior for large unit counts and massive
 ## Win/Loss Per Round
 - Round ends when one army is fully eliminated or timer expires.
 - Surviving units inflict core damage based on remaining total capacity and unit tier weights.
+
+## Codex-Testable Requirements
+- `CMB-001`: choose nearest valid target in range.
+- `CMB-002`: if none in range, acquire nearest valid target by distance.
+- `CMB-003`: tie-break target selection by lowest current HP.
+- `CMB-004`: enforce `GroundOnly`, `AirOnly`, and `Both` target legality.
+- `CMB-005`: shields absorb damage before HP.
+- `CMB-006`: armor reduction obeys clamp floor.
+- `CMB-007`: anti-massive bonus applies only when defender has `Massive`.
+- `CMB-008`: round ends on full elimination or timer expiry.

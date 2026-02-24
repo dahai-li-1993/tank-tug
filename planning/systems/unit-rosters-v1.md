@@ -94,3 +94,9 @@ Notes:
   - 6x Bombard Gunship (192 cap)
   - 6x Field Medic Drone (72 cap)
   - Total: `930` cap
+
+## Codex-Testable Requirements
+- `RST-001`: all unit names are unique across full table.
+- `RST-002`: displayed DPS equals recomputed DPS (`AttackDamage / AttackCooldown`) within tolerance.
+- `RST-003`: all colossal entries use capacity in `181-300`.
+- `RST-004`: documented example armies do not exceed `1000` capacity.

@@ -66,3 +66,9 @@ Racial passive concept:
 - Base unit stat multipliers by race archetype.
 - Upgrade scaling curves per race.
 - Economy bonuses per race kept under hard caps to prevent runaway.
+
+## Codex-Testable Requirements
+- `FAC-001`: race lock enforced after match start.
+- `FAC-002`: cross-race unit purchase rejected.
+- `FAC-003`: shared neutral upgrades valid for all races.
+- `FAC-004`: race passive trigger condition and effect duration are deterministic.

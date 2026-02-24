@@ -42,3 +42,10 @@ Create measurable balance workflows for a three-race competitive tug-of-war game
 - No-counter flying deathballs.
 - Massive-only endgame meta with low diversity.
 - Excess snowball from early streak economy.
+
+## Codex-Testable Requirements
+- `TEL-001`: all required telemetry event types are emitted in a complete match.
+- `TEL-002`: every telemetry event includes required typed payload fields.
+- `TEL-003`: event ordering is valid (`match_start` first, `match_end` last).
+- `TEL-004`: KPI aggregation outputs deterministic values for a known telemetry fixture.
+- `TEL-005`: outlier detection triggers at configured thresholds (for example >54% win rate).

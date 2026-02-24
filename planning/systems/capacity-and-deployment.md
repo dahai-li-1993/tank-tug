@@ -39,3 +39,12 @@ Formalize army size control with a hard `1000` capacity cap and a fair deploymen
   - Yellow 91%-99%
   - Red 100%
 - Hover/unit-card shows exact `CapacityCost`.
+
+## Codex-Testable Requirements
+- `CAP-001`: purchase blocked if capacity would exceed `1000`.
+- `CAP-002`: selling in build phase immediately frees capacity.
+- `CAP-003`: upgrades never consume capacity.
+- `CAP-004`: spawn order is deterministic by frontline -> midline -> backline/flying.
+- `CAP-005`: queue reordering blocked during combat.
+- `CAP-006`: unit selling blocked during combat.
+- `CAP-007`: `Wave Locked` and `Trickle Reinforce` produce distinct deterministic spawn timing.

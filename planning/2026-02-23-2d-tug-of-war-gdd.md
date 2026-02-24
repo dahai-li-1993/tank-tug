@@ -37,6 +37,8 @@ Why:
 4. Distinct Races: Beast, Alien, Human must feel mechanically unique.
 
 ## System Doc Index
+- `planning/systems/codex-automation-contract.md`
+- `planning/systems/test-fixtures-v1.md`
 - `planning/systems/factions-and-identity.md`
 - `planning/systems/unit-roster-and-stats.md`
 - `planning/systems/unit-rosters-v1.md`
@@ -47,7 +49,27 @@ Why:
 - `planning/systems/ui-and-ux.md`
 - `planning/systems/balance-and-telemetry.md`
 
+## Codex Testability Baseline
+- Every feature is assigned requirement IDs in:
+  - `planning/systems/codex-automation-contract.md`
+- Deterministic fixtures are defined in:
+  - `planning/systems/test-fixtures-v1.md`
+- Implementation is considered complete only when all requirement IDs have passing automated tests.
+
+### Requirement Coverage by Phase
+- Phase 1 (Combat Foundations): `UNI-*`, `RST-*`, `CMB-*`
+- Phase 2 (Economy + Capacity): `CAP-*`, `ECO-*`
+- Phase 3 (Factions + Upgrades): `FAC-*`, `ECO-*`
+- Phase 4 (Match Layer + UX): `FLW-*`, `UIX-*`
+- Phase 5 (Balance + Live Tuning): `TEL-*`
+
 ## Fine-Grained Implementation Task Breakdown
+
+### Phase 0: Automation Foundation
+- [ ] Implement deterministic sim tick and seeded RNG contract.
+- [ ] Implement state snapshot + replay checksum pipeline.
+- [ ] Implement schema validation pipeline for unit/upgrade data tables.
+- [ ] Set up requirement-ID based test organization (FAC/UNI/RST/CAP/CMB/ECO/FLW/UIX/TEL).
 
 ### Phase 1: Combat Foundations
 - [ ] Define canonical stat schema for all units (HP, DPS, range, tags, capacity).

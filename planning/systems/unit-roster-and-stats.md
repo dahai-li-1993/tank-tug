@@ -55,3 +55,9 @@ Concrete v1 statlines are documented in:
   - At least 2 anti-massive options
   - At least 1 long-range siege option
   - At least 1 sustain/support option
+
+## Codex-Testable Requirements
+- `UNI-001`: every unit record matches canonical schema.
+- `UNI-002`: size class labels match capacity boundaries.
+- `UNI-003`: each race roster has exactly 8 Landed and 4 Flying units.
+- `UNI-004`: counter matrix minimum coverage is satisfied for each race.

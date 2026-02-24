@@ -55,3 +55,10 @@ Make high-scale battles understandable while keeping buy/build interactions fast
 - Colorblind-safe team colors.
 - Scalable UI text sizes.
 - Reduced VFX mode for visual overload control.
+
+## Codex-Testable Requirements
+- `UIX-001`: capacity meter color thresholds map to green/yellow/red at defined percentages.
+- `UIX-002`: build-phase unit cards always show credit cost, capacity cost, and damage profile icons.
+- `UIX-003`: warning triggers when army has no anti-air capability.
+- `UIX-004`: warning triggers when purchase attempt would overflow capacity.
+- `UIX-005`: overlay hotkeys deterministically toggle HUD state flags.

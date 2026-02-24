@@ -35,3 +35,10 @@ Define round pacing and mode variants for the tug-of-war format.
 - Shorter build favors execution speed and known metas.
 - Longer build favors strategic adaptation and scouting.
 - Use adaptive extension on first 3 rounds for onboarding.
+
+## Codex-Testable Requirements
+- `FLW-001`: initial core HP is `5000` for both players.
+- `FLW-002`: match ends immediately when any core HP <= 0.
+- `FLW-003`: round-cap resolution picks winner by higher core HP.
+- `FLW-004`: if core HP tied at cap, tiebreak uses remaining capacity then total damage.
+- `FLW-005`: v1 mode registry includes `1v1 Ranked`, `1v1 Custom`, and `PvE Gauntlet`.
