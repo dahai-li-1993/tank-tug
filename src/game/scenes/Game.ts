@@ -1,4 +1,5 @@
 import { GameObjects, Input, Math as PhaserMath, Scene } from 'phaser';
+import { ThreeBattleRenderer } from '../render/ThreeBattleRenderer';
 import { RaceId, TugPrototypeSim } from '../sim/prototypeSim';
 
 interface GameKeys
@@ -17,16 +18,16 @@ interface GameKeys
 const LEFT_RACES: RaceId[] = [ 'beast', 'alien', 'human' ];
 const RIGHT_RACES: RaceId[] = [ 'beast', 'alien', 'human' ];
 
-const WORLD_X = 32;
-const WORLD_Y = 120;
 const WORLD_WIDTH = 960;
 const WORLD_HEIGHT = 560;
 const CORE_PADDING = 24;
 const CORE_RADIUS = 18;
+const CORE_HP_MAX = 5000;
 
 export class Game extends Scene
 {
     private sim!: TugPrototypeSim;
+    private battleRenderer?: ThreeBattleRenderer;
     private graphics!: GameObjects.Graphics;
     private hudText!: GameObjects.Text;
     private helpText!: GameObjects.Text;
@@ -49,7 +50,7 @@ export class Game extends Scene
 
     create (): void
     {
-        this.cameras.main.setBackgroundColor(0x101215);
+        this.cameras.main.setBackgroundColor('rgba(0, 0, 0, 0)');
 
         this.sim = new TugPrototypeSim({
             maxEntities: 4500,
@@ -60,7 +61,7 @@ export class Game extends Scene
             bucketSize: 24,
             maxTicks: 2400,
             stepMs: 50,
-            coreHpStart: 5000
+            coreHpStart: CORE_HP_MAX
         });
 
         this.graphics = this.add.graphics();
@@ -80,7 +81,7 @@ export class Game extends Scene
                 '1/2/3: LEFT race Beast/Alien/Human',
                 'Q/W/E: RIGHT race Beast/Alien/Human',
                 'R: restart (new seed)  SPACE: pause  ESC: main menu',
-                'Prototype: deterministic ECS-style sim, true 2D movement, square/circle units'
+                '3D view: spheres, fixed flying altitude, LEFT green / RIGHT red'
             ].join('\n')
         );
 
@@ -102,6 +103,9 @@ export class Game extends Scene
         }
 
         this.keys = mappedKeys;
+        this.ensureBattleRenderer();
+        this.events.once('shutdown', this.handleSceneShutdown, this);
+        this.events.once('destroy', this.handleSceneShutdown, this);
         this.startMatch();
     }
 
@@ -193,51 +197,23 @@ export class Game extends Scene
 
     private drawWorld (): void
     {
+        this.battleRenderer?.render(this.sim);
+
         const graphics = this.graphics;
         graphics.clear();
 
-        graphics.lineStyle(2, 0xffffff, 0.25);
-        graphics.strokeRect(WORLD_X, WORLD_Y, WORLD_WIDTH, WORLD_HEIGHT);
-
-        graphics.fillStyle(0xffffff, 0.15);
-        graphics.fillCircle(WORLD_X + CORE_PADDING, WORLD_Y + WORLD_HEIGHT * 0.5, CORE_RADIUS);
-        graphics.fillCircle(WORLD_X + WORLD_WIDTH - CORE_PADDING, WORLD_Y + WORLD_HEIGHT * 0.5, CORE_RADIUS);
-
-        const coreMax = 5000;
-        const leftCoreRatio = PhaserMath.Clamp(this.sim.leftCoreHp / coreMax, 0, 1);
-        const rightCoreRatio = PhaserMath.Clamp(this.sim.rightCoreHp / coreMax, 0, 1);
+        const leftCoreRatio = PhaserMath.Clamp(this.sim.leftCoreHp / CORE_HP_MAX, 0, 1);
+        const rightCoreRatio = PhaserMath.Clamp(this.sim.rightCoreHp / CORE_HP_MAX, 0, 1);
         const barWidth = 220;
         const barHeight = 10;
 
         graphics.fillStyle(0xffffff, 0.2);
         graphics.fillRect(50, 72, barWidth, barHeight);
         graphics.fillRect(754, 72, barWidth, barHeight);
-        graphics.fillStyle(0xffffff, 0.9);
+        graphics.fillStyle(0x1fad4f, 0.92);
         graphics.fillRect(50, 72, barWidth * leftCoreRatio, barHeight);
+        graphics.fillStyle(0xd12b2b, 0.92);
         graphics.fillRect(754, 72, barWidth * rightCoreRatio, barHeight);
-
-        graphics.fillStyle(0xffffff, 0.88);
-        for (let i = 0; i < this.sim.entityCount; i++)
-        {
-            if (this.sim.alive[i] === 0)
-            {
-                continue;
-            }
-
-            const unitX = WORLD_X + this.sim.x[i];
-            const layer = this.sim.layer[i];
-            const unitY = WORLD_Y + this.sim.y[i];
-            const size = this.sim.renderSize[i];
-
-            if (layer === 0)
-            {
-                graphics.fillRect(unitX - size / 2, unitY - size / 2, size, size);
-            }
-            else
-            {
-                graphics.fillCircle(unitX, unitY, size / 2);
-            }
-        }
     }
 
     private updateHud (): void
@@ -258,5 +234,36 @@ export class Game extends Scene
                 `CoreHP LEFT ${Math.floor(this.sim.leftCoreHp)}  RIGHT ${Math.floor(this.sim.rightCoreHp)}`
             ].join('\n')
         );
+    }
+
+    private ensureBattleRenderer (): void
+    {
+        const parentElement = this.game.canvas.parentElement;
+        if (!parentElement)
+        {
+            throw new Error('Game canvas parent element is not available.');
+        }
+
+        const gameCanvas = this.game.canvas as HTMLCanvasElement;
+        gameCanvas.style.position = 'relative';
+        gameCanvas.style.zIndex = '2';
+
+        this.battleRenderer = new ThreeBattleRenderer({
+            parentElement,
+            width: this.scale.width,
+            height: this.scale.height,
+            arenaWidth: WORLD_WIDTH,
+            arenaHeight: WORLD_HEIGHT,
+            corePadding: CORE_PADDING,
+            coreRadius: CORE_RADIUS,
+            coreHpMax: CORE_HP_MAX,
+            maxEntities: 4500
+        });
+    }
+
+    private handleSceneShutdown (): void
+    {
+        this.battleRenderer?.destroy();
+        this.battleRenderer = undefined;
     }
 }

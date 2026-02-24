@@ -10,6 +10,9 @@ Tank Tug
 │  ├─ package.json scripts
 │  │  ├─ dev / build
 │  │  └─ dev-nolog / build-nolog
+│  ├─ runtime dependencies
+│  │  ├─ Phaser 3
+│  │  └─ Three.js
 │  └─ vite configs
 │     ├─ vite/config.dev.mjs (port 8080)
 │     └─ vite/config.prod.mjs
@@ -18,7 +21,7 @@ Tank Tug
 │     └─ DOMContentLoaded -> StartGame('game-container')
 ├─ Game Composition System
 │  └─ tank-tug/src/game/main.ts
-│     ├─ builds Phaser GameConfig (1024x768, parent game-container)
+│     ├─ builds Phaser GameConfig (1024x768, transparent canvas, parent game-container)
 │     └─ registers scene classes
 │        ├─ Boot
 │        ├─ Preloader
@@ -38,14 +41,23 @@ Tank Tug
 │  ├─ class Game extends Phaser.Scene
 │  │  ├─ create:
 │  │  │  ├─ initializes TugPrototypeSim
+│  │  │  ├─ initializes ThreeBattleRenderer
 │  │  │  ├─ sets race/hotkey controls
 │  │  │  └─ starts deterministic prototype match
 │  │  └─ update:
 │  │     ├─ fixed-step simulation ticking
-│  │     ├─ primitive 2D battlefield rendering (square/circle units)
-│  │     └─ HUD updates (alive counts, core HP, capacity)
+│  │     ├─ 3D battlefield rendering (spheres; left green, right red)
+│  │     ├─ fixed flying-unit visual altitude
+│  │     └─ HUD updates (alive counts, core HP, capacity + bars)
 │  └─ class GameOver extends Phaser.Scene
 │     └─ create: game over screen, pointerdown -> MainMenu
+├─ 3D Battlefield Rendering System (tank-tug/src/game/render/ThreeBattleRenderer.ts)
+│  └─ class ThreeBattleRenderer
+│     ├─ owns Three.js renderer/scene/camera lifecycle
+│     ├─ builds arena plane, border meshes, and core meshes
+│     ├─ renders units with instanced sphere meshes by team color
+│     ├─ maps sim XY into world XZ coordinates
+│     └─ applies constant Y flight height for all flying units
 ├─ Headless Simulation System (tank-tug/src/game/sim/prototypeSim.ts)
 │  ├─ class TugPrototypeSim
 │  │  ├─ SoA ECS-like storage (typed arrays per component)
@@ -53,6 +65,7 @@ Tank Tug
 │  │  ├─ seeded RNG-driven spawn variance
 │  │  ├─ 2D spatial bucket broadphase for target acquisition
 │  │  ├─ full XY movement and Euclidean target selection
+│  │  ├─ uniform movement speed shared by all spawned units
 │  │  ├─ combat resolution (shield, armor, HP, core breach)
 │  │  └─ victory resolution (core destroy, wipe, tick cap tiebreak)
 │  └─ class XorShift32

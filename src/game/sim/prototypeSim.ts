@@ -9,6 +9,7 @@ const LAYER_FLYING = 1;
 const ATTACK_GROUNDED = 1;
 const ATTACK_FLYING = 2;
 const ATTACK_BOTH = ATTACK_GROUNDED | ATTACK_FLYING;
+const UNIFORM_UNIT_SPEED = 2.2;
 
 type TeamId = 0 | 1;
 
@@ -372,7 +373,7 @@ export class TugPrototypeSim
         this.armor[i] = archetype.armor;
         this.damage[i] = archetype.damage;
         this.range[i] = archetype.range;
-        this.speed[i] = archetype.speed;
+        this.speed[i] = UNIFORM_UNIT_SPEED;
         this.attackMask[i] = archetype.attackMask;
         this.cooldownTicks[i] = archetype.cooldownTicks;
         this.nextAttackTick[i] = Math.floor(this.rng.nextFloat() * archetype.cooldownTicks);
