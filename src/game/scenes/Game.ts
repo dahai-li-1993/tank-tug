@@ -1,5 +1,4 @@
-import { GameObjects, Input, Math as PhaserMath, Scene } from 'phaser';
-import { ThreeBattleRenderer } from '../render/ThreeBattleRenderer';
+import { Cameras, GameObjects, Input, Math as PhaserMath, Scene } from 'phaser';
 import { RaceId, TugPrototypeSim } from '../sim/prototypeSim';
 
 interface GameKeys
@@ -29,18 +28,30 @@ const WORLD_HEIGHT = 560;
 const CORE_PADDING = 24;
 const CORE_RADIUS = 18;
 const CORE_HP_MAX = 5000;
+const TEAM_LEFT = 0;
+const LAYER_FLYING = 1;
+const WORLD_BG_COLOR = 0x10161f;
+const WORLD_BORDER_COLOR = 0xffffff;
+const LEFT_TEAM_COLOR = 0x1fad4f;
+const RIGHT_TEAM_COLOR = 0xd12b2b;
+const CORE_COLOR = 0x4a90e2;
 const CAMERA_PAN_SPEED = 420;
 const CAMERA_KEY_ZOOM_SPEED = 520;
 const CAMERA_WHEEL_ZOOM_SCALE = 0.42;
 const CAMERA_WHEEL_MAX_DELTA = 120;
+const CAMERA_ZOOM_DELTA_SCALE = 0.0012;
+const CAMERA_ZOOM_MIN = 0.65;
+const CAMERA_ZOOM_MAX = 2.2;
+const CAMERA_PAN_MARGIN = 96;
 
 export class Game extends Scene
 {
     private sim!: TugPrototypeSim;
-    private battleRenderer?: ThreeBattleRenderer;
-    private graphics!: GameObjects.Graphics;
+    private worldGraphics!: GameObjects.Graphics;
+    private uiGraphics!: GameObjects.Graphics;
     private hudText!: GameObjects.Text;
     private helpText!: GameObjects.Text;
+    private uiCamera?: Cameras.Scene2D.Camera;
     private keys!: GameKeys;
     private accumulatorMs: number;
     private pausedSim: boolean;
@@ -48,6 +59,9 @@ export class Game extends Scene
     private leftRaceIndex: number;
     private rightRaceIndex: number;
     private pendingWheelZoomDelta: number;
+    private cameraCenterX: number;
+    private cameraCenterY: number;
+    private cameraZoom: number;
 
     constructor ()
     {
@@ -58,11 +72,14 @@ export class Game extends Scene
         this.leftRaceIndex = 2;
         this.rightRaceIndex = 0;
         this.pendingWheelZoomDelta = 0;
+        this.cameraCenterX = WORLD_WIDTH * 0.5;
+        this.cameraCenterY = WORLD_HEIGHT * 0.5;
+        this.cameraZoom = 1;
     }
 
     create (): void
     {
-        this.cameras.main.setBackgroundColor('rgba(0, 0, 0, 0)');
+        this.cameras.main.setBackgroundColor('#0d1014');
 
         this.sim = new TugPrototypeSim({
             maxEntities: 4500,
@@ -76,25 +93,34 @@ export class Game extends Scene
             coreHpStart: CORE_HP_MAX
         });
 
-        this.graphics = this.add.graphics();
+        this.worldGraphics = this.add.graphics();
+        this.uiGraphics = this.add.graphics();
+        this.uiGraphics.setScrollFactor(0);
+        this.uiGraphics.setDepth(10);
+
         this.hudText = this.add.text(20, 18, '', {
             fontFamily: 'monospace',
             fontSize: '16px',
             color: '#ffffff'
         });
+        this.hudText.setScrollFactor(0);
+        this.hudText.setDepth(11);
+
         this.helpText = this.add.text(20, 92, '', {
             fontFamily: 'monospace',
             fontSize: '13px',
             color: '#ffffff'
         });
+        this.helpText.setScrollFactor(0);
+        this.helpText.setDepth(11);
 
         this.helpText.setText(
             [
                 '1/2/3: LEFT race Beast/Alien/Human',
                 'U/I/O: RIGHT race Beast/Alien/Human',
                 'R: restart (new seed)  SPACE: pause  ESC: main menu',
-                'W/A/S/D: pan camera (horizontal plane)  Q/E or mouse wheel: zoom',
-                '3D view: spheres, fixed flying altitude, LEFT green / RIGHT red'
+                'W/A/S/D: pan camera  Q/E or mouse wheel: zoom',
+                '2D view: LEFT green / RIGHT red'
             ].join('\n')
         );
 
@@ -122,8 +148,11 @@ export class Game extends Scene
         }
 
         this.keys = mappedKeys;
-        this.ensureBattleRenderer();
+        this.setupCameras();
+        this.applyCameraTransform();
+
         this.input.on('wheel', this.handleMouseWheel, this);
+        this.scale.on('resize', this.handleResize, this);
         this.events.once('shutdown', this.handleSceneShutdown, this);
         this.events.once('destroy', this.handleSceneShutdown, this);
         this.startMatch();
@@ -147,6 +176,7 @@ export class Game extends Scene
         }
 
         this.drawWorld();
+        this.drawUiOverlay();
         this.updateHud();
     }
 
@@ -218,36 +248,22 @@ export class Game extends Scene
 
     private handleCameraControls (delta: number): void
     {
-        const renderer = this.battleRenderer;
-        if (!renderer)
-        {
-            this.pendingWheelZoomDelta = 0;
-            return;
-        }
-
         const panDelta = CAMERA_PAN_SPEED * (delta / 1000);
-        let panX = 0;
-        let panZ = 0;
-
         if (this.keys.a.isDown)
         {
-            panX -= panDelta;
+            this.cameraCenterX -= panDelta;
         }
         if (this.keys.d.isDown)
         {
-            panX += panDelta;
+            this.cameraCenterX += panDelta;
         }
         if (this.keys.w.isDown)
         {
-            panZ -= panDelta;
+            this.cameraCenterY -= panDelta;
         }
         if (this.keys.s.isDown)
         {
-            panZ += panDelta;
-        }
-        if (panX !== 0 || panZ !== 0)
-        {
-            renderer.panHorizontal(panX, panZ);
+            this.cameraCenterY += panDelta;
         }
 
         let zoomDelta = this.pendingWheelZoomDelta;
@@ -264,8 +280,14 @@ export class Game extends Scene
         }
         if (zoomDelta !== 0)
         {
-            renderer.zoomBy(zoomDelta);
+            this.cameraZoom = PhaserMath.Clamp(
+                this.cameraZoom - zoomDelta * CAMERA_ZOOM_DELTA_SCALE,
+                CAMERA_ZOOM_MIN,
+                CAMERA_ZOOM_MAX
+            );
         }
+
+        this.applyCameraTransform();
     }
 
     private handleMouseWheel (
@@ -279,25 +301,131 @@ export class Game extends Scene
         this.pendingWheelZoomDelta += clamped * CAMERA_WHEEL_ZOOM_SCALE;
     }
 
+    private handleResize (): void
+    {
+        this.uiCamera?.setSize(this.scale.width, this.scale.height);
+        this.applyCameraTransform();
+    }
+
+    private setupCameras (): void
+    {
+        const worldCamera = this.cameras.main;
+
+        if (this.uiCamera)
+        {
+            this.cameras.remove(this.uiCamera);
+            this.uiCamera = undefined;
+        }
+
+        this.uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height, false, 'ui');
+        if (!this.uiCamera)
+        {
+            throw new Error('Unable to create UI camera.');
+        }
+
+        this.uiCamera.setZoom(1);
+        this.uiCamera.setScroll(0, 0);
+
+        worldCamera.ignore([ this.uiGraphics, this.hudText, this.helpText ]);
+        this.uiCamera.ignore(this.worldGraphics);
+    }
+
+    private applyCameraTransform (): void
+    {
+        const camera = this.cameras.main;
+        camera.setZoom(this.cameraZoom);
+
+        const halfViewWidth = camera.width / (2 * this.cameraZoom);
+        const halfViewHeight = camera.height / (2 * this.cameraZoom);
+        const minX = halfViewWidth - CAMERA_PAN_MARGIN;
+        const maxX = WORLD_WIDTH - halfViewWidth + CAMERA_PAN_MARGIN;
+        const minY = halfViewHeight - CAMERA_PAN_MARGIN;
+        const maxY = WORLD_HEIGHT - halfViewHeight + CAMERA_PAN_MARGIN;
+
+        if (minX <= maxX)
+        {
+            this.cameraCenterX = PhaserMath.Clamp(this.cameraCenterX, minX, maxX);
+        }
+        else
+        {
+            this.cameraCenterX = PhaserMath.Clamp(
+                this.cameraCenterX,
+                WORLD_WIDTH * 0.5 - CAMERA_PAN_MARGIN,
+                WORLD_WIDTH * 0.5 + CAMERA_PAN_MARGIN
+            );
+        }
+
+        if (minY <= maxY)
+        {
+            this.cameraCenterY = PhaserMath.Clamp(this.cameraCenterY, minY, maxY);
+        }
+        else
+        {
+            this.cameraCenterY = PhaserMath.Clamp(
+                this.cameraCenterY,
+                WORLD_HEIGHT * 0.5 - CAMERA_PAN_MARGIN,
+                WORLD_HEIGHT * 0.5 + CAMERA_PAN_MARGIN
+            );
+        }
+
+        camera.centerOn(this.cameraCenterX, this.cameraCenterY);
+    }
+
     private drawWorld (): void
     {
-        this.battleRenderer?.render(this.sim);
+        const graphics = this.worldGraphics;
+        graphics.clear();
 
-        const graphics = this.graphics;
+        graphics.fillStyle(WORLD_BG_COLOR, 1);
+        graphics.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        graphics.lineStyle(2, WORLD_BORDER_COLOR, 0.25);
+        graphics.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        const leftCoreRatio = PhaserMath.Clamp(this.sim.leftCoreHp / CORE_HP_MAX, 0, 1);
+        const rightCoreRatio = PhaserMath.Clamp(this.sim.rightCoreHp / CORE_HP_MAX, 0, 1);
+        const coreY = WORLD_HEIGHT * 0.5;
+
+        graphics.fillStyle(CORE_COLOR, 0.2 + leftCoreRatio * 0.75);
+        graphics.fillCircle(CORE_PADDING, coreY, CORE_RADIUS);
+        graphics.fillStyle(CORE_COLOR, 0.2 + rightCoreRatio * 0.75);
+        graphics.fillCircle(WORLD_WIDTH - CORE_PADDING, coreY, CORE_RADIUS);
+
+        for (let i = 0; i < this.sim.entityCount; i++)
+        {
+            if (this.sim.alive[i] === 0)
+            {
+                continue;
+            }
+
+            const teamColor = this.sim.team[i] === TEAM_LEFT ? LEFT_TEAM_COLOR : RIGHT_TEAM_COLOR;
+            const alpha = this.sim.layer[i] === LAYER_FLYING ? 0.95 : 0.82;
+            const radius = Math.max(1.4, this.sim.renderSize[i] * 0.72);
+
+            graphics.fillStyle(teamColor, alpha);
+            graphics.fillCircle(this.sim.x[i], this.sim.y[i], radius);
+        }
+    }
+
+    private drawUiOverlay (): void
+    {
+        const graphics = this.uiGraphics;
         graphics.clear();
 
         const leftCoreRatio = PhaserMath.Clamp(this.sim.leftCoreHp / CORE_HP_MAX, 0, 1);
         const rightCoreRatio = PhaserMath.Clamp(this.sim.rightCoreHp / CORE_HP_MAX, 0, 1);
         const barWidth = 220;
         const barHeight = 10;
+        const leftBarX = 50;
+        const rightBarX = this.scale.width - 50 - barWidth;
+        const barY = 72;
 
         graphics.fillStyle(0xffffff, 0.2);
-        graphics.fillRect(50, 72, barWidth, barHeight);
-        graphics.fillRect(754, 72, barWidth, barHeight);
-        graphics.fillStyle(0x1fad4f, 0.92);
-        graphics.fillRect(50, 72, barWidth * leftCoreRatio, barHeight);
-        graphics.fillStyle(0xd12b2b, 0.92);
-        graphics.fillRect(754, 72, barWidth * rightCoreRatio, barHeight);
+        graphics.fillRect(leftBarX, barY, barWidth, barHeight);
+        graphics.fillRect(rightBarX, barY, barWidth, barHeight);
+        graphics.fillStyle(LEFT_TEAM_COLOR, 0.92);
+        graphics.fillRect(leftBarX, barY, barWidth * leftCoreRatio, barHeight);
+        graphics.fillStyle(RIGHT_TEAM_COLOR, 0.92);
+        graphics.fillRect(rightBarX, barY, barWidth * rightCoreRatio, barHeight);
     }
 
     private updateHud (): void
@@ -320,35 +448,14 @@ export class Game extends Scene
         );
     }
 
-    private ensureBattleRenderer (): void
-    {
-        const parentElement = this.game.canvas.parentElement;
-        if (!parentElement)
-        {
-            throw new Error('Game canvas parent element is not available.');
-        }
-
-        const gameCanvas = this.game.canvas as HTMLCanvasElement;
-        gameCanvas.style.position = 'relative';
-        gameCanvas.style.zIndex = '2';
-
-        this.battleRenderer = new ThreeBattleRenderer({
-            parentElement,
-            width: this.scale.width,
-            height: this.scale.height,
-            arenaWidth: WORLD_WIDTH,
-            arenaHeight: WORLD_HEIGHT,
-            corePadding: CORE_PADDING,
-            coreRadius: CORE_RADIUS,
-            coreHpMax: CORE_HP_MAX,
-            maxEntities: 4500
-        });
-    }
-
     private handleSceneShutdown (): void
     {
         this.input.off('wheel', this.handleMouseWheel, this);
-        this.battleRenderer?.destroy();
-        this.battleRenderer = undefined;
+        this.scale.off('resize', this.handleResize, this);
+        if (this.uiCamera)
+        {
+            this.cameras.remove(this.uiCamera);
+            this.uiCamera = undefined;
+        }
     }
 }

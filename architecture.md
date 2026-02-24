@@ -11,8 +11,7 @@ Tank Tug
 │  │  ├─ dev / build
 │  │  └─ dev-nolog / build-nolog
 │  ├─ runtime dependencies
-│  │  ├─ Phaser 3
-│  │  └─ Three.js
+│  │  └─ Phaser 3
 │  └─ vite configs
 │     ├─ vite/config.dev.mjs (port 8080)
 │     └─ vite/config.prod.mjs
@@ -41,26 +40,21 @@ Tank Tug
 │  ├─ class Game extends Phaser.Scene
 │  │  ├─ create:
 │  │  │  ├─ initializes TugPrototypeSim
-│  │  │  ├─ initializes ThreeBattleRenderer
-│  │  │  ├─ sets race/hotkey controls + camera pan/zoom inputs
+│  │  │  ├─ creates world/UI graphics layers + HUD/help overlays
+│  │  │  ├─ configures dual-camera render routing (world camera + fixed-zoom UI camera)
+│  │  │  ├─ binds race/hotkey controls and camera pan/zoom input
 │  │  │  └─ starts deterministic prototype match
 │  │  └─ update:
 │  │     ├─ fixed-step simulation ticking
-│  │     ├─ camera controls (W/A/S/D pan on XZ plane, Q/E + wheel zoom)
-│  │     ├─ 3D battlefield rendering (spheres; left green, right red)
-│  │     ├─ fixed flying-unit visual altitude
+│  │     ├─ camera controls (W/A/S/D pan, Q/E + wheel zoom)
+│  │     ├─ 2D battlefield drawing (arena, cores, units)
 │  │     └─ HUD updates (alive counts, core HP, capacity + bars)
 │  └─ class GameOver extends Phaser.Scene
 │     └─ create: game over screen, pointerdown -> MainMenu
-├─ 3D Battlefield Rendering System (tank-tug/src/game/render/ThreeBattleRenderer.ts)
-│  └─ class ThreeBattleRenderer
-│     ├─ owns Three.js renderer/scene/camera lifecycle
-│     ├─ stores camera target + distance state with clamped pan/zoom ranges
-│     ├─ exposes horizontal pan and zoom controls for scene input handling
-│     ├─ builds arena plane, border meshes, and core meshes
-│     ├─ renders units with instanced sphere meshes by team color
-│     ├─ maps sim XY into world XZ coordinates
-│     └─ applies constant Y flight height for all flying units
+├─ 2D Match Rendering System (in Game scene)
+│  ├─ world graphics layer draws arena bounds, cores, and unit circles per tick
+│  ├─ UI graphics/text are rendered by a dedicated fixed-zoom UI camera
+│  └─ Phaser main camera stores clamped center/zoom state for world pan + zoom
 ├─ Headless Simulation System (tank-tug/src/game/sim/prototypeSim.ts)
 │  ├─ class TugPrototypeSim
 │  │  ├─ SoA ECS-like storage (typed arrays per component)
