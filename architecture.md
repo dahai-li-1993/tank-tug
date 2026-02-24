@@ -42,10 +42,11 @@ Tank Tug
 │  │  ├─ create:
 │  │  │  ├─ initializes TugPrototypeSim
 │  │  │  ├─ initializes ThreeBattleRenderer
-│  │  │  ├─ sets race/hotkey controls
+│  │  │  ├─ sets race/hotkey controls + camera pan/zoom inputs
 │  │  │  └─ starts deterministic prototype match
 │  │  └─ update:
 │  │     ├─ fixed-step simulation ticking
+│  │     ├─ camera controls (W/A/S/D pan on XZ plane, Q/E + wheel zoom)
 │  │     ├─ 3D battlefield rendering (spheres; left green, right red)
 │  │     ├─ fixed flying-unit visual altitude
 │  │     └─ HUD updates (alive counts, core HP, capacity + bars)
@@ -54,6 +55,8 @@ Tank Tug
 ├─ 3D Battlefield Rendering System (tank-tug/src/game/render/ThreeBattleRenderer.ts)
 │  └─ class ThreeBattleRenderer
 │     ├─ owns Three.js renderer/scene/camera lifecycle
+│     ├─ stores camera target + distance state with clamped pan/zoom ranges
+│     ├─ exposes horizontal pan and zoom controls for scene input handling
 │     ├─ builds arena plane, border meshes, and core meshes
 │     ├─ renders units with instanced sphere meshes by team color
 │     ├─ maps sim XY into world XZ coordinates

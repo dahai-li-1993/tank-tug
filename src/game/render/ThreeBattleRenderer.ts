@@ -39,6 +39,9 @@ const ENEMY_COLOR = 0xd12b2b;
 const CORE_COLOR = 0x4a90e2;
 const GROUND_COLOR = 0x1b2026;
 const FLIGHT_HEIGHT = 28;
+const CAMERA_MIN_DISTANCE = 260;
+const CAMERA_MAX_DISTANCE = 1150;
+const CAMERA_PAN_MARGIN = 48;
 
 export class ThreeBattleRenderer
 {
@@ -59,9 +62,14 @@ export class ThreeBattleRenderer
     private readonly unitRadiusScale: number;
     private readonly minGroundY: number;
     private readonly coreHpMax: number;
+    private readonly cameraTarget: Vector3;
+    private readonly cameraOffsetDirection: Vector3;
+    private readonly cameraPanLimitX: number;
+    private readonly cameraPanLimitZ: number;
 
     private width: number;
     private height: number;
+    private cameraDistance: number;
 
     constructor (cfg: ThreeBattleRendererConfig)
     {
@@ -72,6 +80,11 @@ export class ThreeBattleRenderer
         this.unitRadiusScale = 0.52;
         this.minGroundY = 1.2;
         this.coreHpMax = Math.max(1, cfg.coreHpMax);
+        this.cameraPanLimitX = Math.max(0, this.arenaWidth * 0.5 - CAMERA_PAN_MARGIN);
+        this.cameraPanLimitZ = Math.max(0, this.arenaHeight * 0.5 - CAMERA_PAN_MARGIN);
+        this.cameraTarget = new Vector3(0, 0, 0);
+        this.cameraOffsetDirection = new Vector3(0, 470, 500).normalize();
+        this.cameraDistance = Math.hypot(470, 500);
 
         this.host = document.createElement('div');
         this.host.style.position = 'absolute';
@@ -93,8 +106,7 @@ export class ThreeBattleRenderer
         this.scene.background = new Color(0x0d1014);
 
         this.camera = new PerspectiveCamera(48, this.width / this.height, 1, 2500);
-        this.camera.position.set(0, 470, 500);
-        this.camera.lookAt(0, 0, 0);
+        this.applyCameraTransform();
 
         const ambient = new AmbientLight(0xffffff, 0.55);
         this.scene.add(ambient);
@@ -176,6 +188,35 @@ export class ThreeBattleRenderer
         this.renderer.render(this.scene, this.camera);
     }
 
+    panHorizontal (deltaX: number, deltaZ: number): void
+    {
+        if (deltaX === 0 && deltaZ === 0)
+        {
+            return;
+        }
+
+        this.cameraTarget.x = Math.max(-this.cameraPanLimitX, Math.min(this.cameraPanLimitX, this.cameraTarget.x + deltaX));
+        this.cameraTarget.z = Math.max(-this.cameraPanLimitZ, Math.min(this.cameraPanLimitZ, this.cameraTarget.z + deltaZ));
+        this.applyCameraTransform();
+    }
+
+    zoomBy (deltaDistance: number): void
+    {
+        if (deltaDistance === 0)
+        {
+            return;
+        }
+
+        const nextDistance = Math.max(CAMERA_MIN_DISTANCE, Math.min(CAMERA_MAX_DISTANCE, this.cameraDistance + deltaDistance));
+        if (nextDistance === this.cameraDistance)
+        {
+            return;
+        }
+
+        this.cameraDistance = nextDistance;
+        this.applyCameraTransform();
+    }
+
     destroy (): void
     {
         this.disposeMaterial(this.playerUnits.material);
@@ -255,6 +296,12 @@ export class ThreeBattleRenderer
         this.camera.aspect = this.width / this.height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.width, this.height, false);
+    }
+
+    private applyCameraTransform (): void
+    {
+        this.camera.position.copy(this.cameraTarget).addScaledVector(this.cameraOffsetDirection, this.cameraDistance);
+        this.camera.lookAt(this.cameraTarget);
     }
 
     private disposeMaterial (material: Material | Material[]): void
