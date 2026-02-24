@@ -6,6 +6,7 @@ Granular design references for the 2D tug-of-war feature.
 ## Docs
 - `codex-automation-contract.md`
 - `test-fixtures-v1.md`
+- `phase-0-ecs-foundation.md`
 - `factions-and-identity.md`
 - `unit-roster-and-stats.md`
 - `unit-rosters-v1.md`

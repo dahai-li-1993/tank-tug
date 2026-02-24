@@ -36,13 +36,31 @@ Tank Tug
 │  ├─ class MainMenu extends Phaser.Scene
 │  │  └─ create: show menu, pointerdown -> Game
 │  ├─ class Game extends Phaser.Scene
-│  │  └─ create: placeholder gameplay, pointerdown -> GameOver
+│  │  ├─ create:
+│  │  │  ├─ initializes TugPrototypeSim
+│  │  │  ├─ sets race/hotkey controls
+│  │  │  └─ starts deterministic prototype match
+│  │  └─ update:
+│  │     ├─ fixed-step simulation ticking
+│  │     ├─ primitive 2D battlefield rendering (square/circle units)
+│  │     └─ HUD updates (alive counts, core HP, capacity)
 │  └─ class GameOver extends Phaser.Scene
 │     └─ create: game over screen, pointerdown -> MainMenu
+├─ Headless Simulation System (tank-tug/src/game/sim/prototypeSim.ts)
+│  ├─ class TugPrototypeSim
+│  │  ├─ SoA ECS-like storage (typed arrays per component)
+│  │  ├─ deterministic fixed-step loop
+│  │  ├─ seeded RNG-driven spawn variance
+│  │  ├─ 2D spatial bucket broadphase for target acquisition
+│  │  ├─ full XY movement and Euclidean target selection
+│  │  ├─ combat resolution (shield, armor, HP, core breach)
+│  │  └─ victory resolution (core destroy, wipe, tick cap tiebreak)
+│  └─ class XorShift32
+│     └─ deterministic RNG source for replayable simulation
 └─ Asset Usage System
-   ├─ background: Boot preload -> used by Preloader/MainMenu/Game/GameOver
+   ├─ background: Boot preload -> used by Preloader/MainMenu
    └─ logo: Preloader preload -> used by MainMenu
 ```
 
 ## Scene Flow
-`Boot -> Preloader -> MainMenu -> Game -> GameOver -> MainMenu`
+`Boot -> Preloader -> MainMenu -> Game` (ESC in Game returns to MainMenu)

@@ -30,6 +30,7 @@ Make every design feature implementable and verifiable by Codex with determinist
 
 ## Requirement ID Format
 - Prefix by system:
+  - `ECS` phase-0 ECS foundation
   - `FAC` factions
   - `UNI` unit schema/taxonomy
   - `RST` concrete v1 roster table
@@ -45,6 +46,17 @@ Make every design feature implementable and verifiable by Codex with determinist
 
 | Requirement ID | Feature | Source | Deterministic Input | Expected Assertion |
 |---|---|---|---|---|
+| ECS-001 | Headless sim core independent from Phaser | phase-0-ecs-foundation.md | Import sim module in isolated unit test | Module runs tick without Scene |
+| ECS-002 | SoA typed-array component storage | phase-0-ecs-foundation.md | Initialize sim with N entities | Component arrays exist and indexed by entity ID |
+| ECS-003 | Fixed-step deterministic tick | phase-0-ecs-foundation.md | Run same fixture for 300 ticks twice | State snapshots are identical |
+| ECS-004 | Seeded RNG determinism | phase-0-ecs-foundation.md | Same seed and inputs, repeated run | Identical spawn jitter and outcomes |
+| ECS-005 | Stable target tie-break order | phase-0-ecs-foundation.md | Equal-distance/equal-range fixture | Lowest HP then lowest spawn order selected |
+| ECS-006 | Damage pipeline with shield/armor/core breach | phase-0-ecs-foundation.md | Shielded and armored target fixtures | Damage order and core breach values match spec |
+| ECS-007 | Spatial bucket broadphase active | phase-0-ecs-foundation.md | Run target acquire with bucket debug stats | Bucket query path used and results valid |
+| ECS-008 | Replay checksum stream | phase-0-ecs-foundation.md | Emit hash each interval, replay same seed | Hash sequence matches exactly |
+| ECS-009 | 1000+ entity determinism scenario | phase-0-ecs-foundation.md | Beast vs Human large fixture | Deterministic winner/tick/core values |
+| ECS-010 | Primitive-shape prototype projection | phase-0-ecs-foundation.md | Render scene with sim state | Ground uses square, flying uses circle |
+| ECS-011 | Full 2D movement/targeting | phase-0-ecs-foundation.md | 2D spread fixture with vertical separation | Units acquire and move in both X and Y axes |
 | FAC-001 | Race locked after match start | factions-and-identity.md | Start match as Beast, attempt Alien purchase | Purchase rejected with `ERR_RACE_LOCKED` |
 | FAC-002 | No cross-race unit purchase | factions-and-identity.md | Human player buys Alien unit ID | Purchase rejected and credits unchanged |
 | FAC-003 | Neutral upgrades allowed for all races | factions-and-identity.md | Buy shared upgrade as each race | Upgrade applies for Beast/Alien/Human |
@@ -98,6 +110,7 @@ Make every design feature implementable and verifiable by Codex with determinist
 - Every requirement ID above has at least one green automated test.
 - Test suite includes at least one deterministic replay test per race matchup.
 - Critical path (`capacity`, `combat`, `economy`, `victory`) has zero flaky tests across 20 reruns.
+- ECS performance budgets are evaluated and reported for `1200`-unit scenarios.
 - CI artifact includes:
   - test report
   - replay checksums

@@ -18,6 +18,31 @@ Provide canonical deterministic fixtures used by requirement tests in `codex-aut
 - Action: attempt to buy `Prism Adept` (Alien)
 - Expected: `ERR_RACE_LOCKED`
 
+### `FX-ECS-DETERMINISM-01`
+- Seed: `424242`
+- Matchup: Beast vs Human
+- Sim duration: `600` ticks
+- Expected:
+  - identical winner/core/alive outputs across repeated runs
+  - identical replay hash sequence
+
+### `FX-ECS-SCALE-01`
+- Seed: `424242`
+- Matchup: Beast vs Human (1000+ entities)
+- Sim duration: `1200` ticks
+- Expected:
+  - no crashes
+  - deterministic completion
+  - performance metrics emitted
+
+### `FX-ECS-2D-01`
+- Seed: `424242`
+- Two enemy clusters separated on Y axis
+- Sim duration: `300` ticks
+- Expected:
+  - units adjust Y position while pathing
+  - target selection uses Euclidean distance in 2D
+
 ### `FX-CAP-EDGE-01`
 - Build phase, PlayerA capacity used: `995`
 - Action: buy unit with capacity `10`

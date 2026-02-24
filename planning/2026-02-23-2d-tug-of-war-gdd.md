@@ -25,8 +25,8 @@ Why:
 ## High-Level Game Loop
 1. Pre-match: pick race + starting doctrine.
 2. Build phase: spend credits on units/upgrades, set deployment queue.
-3. Combat phase: armies auto-deploy and fight along a 2D lane.
-4. Resolution: surviving force pushes lane and damages enemy core.
+3. Combat phase: armies auto-deploy and fight across a true 2D battlefield.
+4. Resolution: surviving force pushes through space and damages enemy core.
 5. Next round: receive income + rewards, rebalance composition.
 6. Win condition: enemy core destroyed or higher core HP at round cap.
 
@@ -39,6 +39,7 @@ Why:
 ## System Doc Index
 - `planning/systems/codex-automation-contract.md`
 - `planning/systems/test-fixtures-v1.md`
+- `planning/systems/phase-0-ecs-foundation.md`
 - `planning/systems/factions-and-identity.md`
 - `planning/systems/unit-roster-and-stats.md`
 - `planning/systems/unit-rosters-v1.md`
@@ -57,6 +58,7 @@ Why:
 - Implementation is considered complete only when all requirement IDs have passing automated tests.
 
 ### Requirement Coverage by Phase
+- Phase 0 (Automation Foundation): `ECS-*`
 - Phase 1 (Combat Foundations): `UNI-*`, `RST-*`, `CMB-*`
 - Phase 2 (Economy + Capacity): `CAP-*`, `ECO-*`
 - Phase 3 (Factions + Upgrades): `FAC-*`, `ECO-*`
@@ -66,10 +68,13 @@ Why:
 ## Fine-Grained Implementation Task Breakdown
 
 ### Phase 0: Automation Foundation
-- [ ] Implement deterministic sim tick and seeded RNG contract.
+- [x] Implement headless ECS simulation core (typed-array SoA).
+- [x] Implement deterministic sim tick + seeded RNG contract.
+- [x] Implement spatial bucket broadphase for target acquisition.
+- [x] Upgrade prototype from lane-style movement to true 2D movement/targeting.
 - [ ] Implement state snapshot + replay checksum pipeline.
 - [ ] Implement schema validation pipeline for unit/upgrade data tables.
-- [ ] Set up requirement-ID based test organization (FAC/UNI/RST/CAP/CMB/ECO/FLW/UIX/TEL).
+- [ ] Set up requirement-ID based test organization (ECS/FAC/UNI/RST/CAP/CMB/ECO/FLW/UIX/TEL).
 
 ### Phase 1: Combat Foundations
 - [ ] Define canonical stat schema for all units (HP, DPS, range, tags, capacity).
@@ -94,6 +99,19 @@ Why:
 - [ ] Implement build/combat phase transitions with clear timers.
 - [ ] Implement combat readability UX (target icons, damage text modes, alerts).
 - [ ] Implement victory/defeat and end-of-match summary.
+
+## Current Implementation Status (Prototype Pass 2)
+- Added first-playable tug-of-war simulation prototype in `src/game/scenes/Game.ts`.
+- Added headless deterministic ECS-style sim in `src/game/sim/prototypeSim.ts`.
+- Prototype supports race matchup selection hotkeys, seeded restarts, and primitive unit rendering.
+- Prototype now runs as a true 2D battlefield simulation with XY movement/targeting.
+- Visual representation:
+  - Landed units: squares
+  - Flying units: circles
+- Prototype does not yet implement:
+  - buy/sell economy loop
+  - full upgrade system
+  - replay checksum tests
 
 ### Phase 5: Balance + Live Tuning Tools
 - [ ] Add telemetry events for purchases, outcomes, and unit efficiency.

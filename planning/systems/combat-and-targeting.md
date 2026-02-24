@@ -3,10 +3,10 @@
 ## Goal
 Define deterministic, readable combat behavior for large unit counts and massive units.
 
-## Lane Model
-- Single horizontal 2D lane (left base vs right base).
-- Units auto-advance until enemies are in range.
-- When one side wins a skirmish, survivors push toward enemy core.
+## Battlefield Model
+- True 2D battlefield plane (left base vs right base).
+- Units move and target in both X and Y.
+- When one side wins a skirmish, survivors path toward enemy core through the 2D field.
 
 ## Targeting Priority (Default)
 1. Nearest valid target in attack range.
