@@ -47,12 +47,12 @@ Tank Tug
 │  │  └─ update:
 │  │     ├─ fixed-step simulation ticking
 │  │     ├─ camera controls (W/A/S/D pan, Q/E + wheel zoom)
-│  │     ├─ 2D battlefield drawing (arena, cores, units)
+│  │     ├─ 2D battlefield drawing (arena, cores, units, projectile trails)
 │  │     └─ HUD updates (alive counts, core HP, capacity + bars)
 │  └─ class GameOver extends Phaser.Scene
 │     └─ create: game over screen, pointerdown -> MainMenu
 ├─ 2D Match Rendering System (in Game scene)
-│  ├─ world graphics layer draws arena bounds, cores, and unit circles per tick
+│  ├─ world graphics layer draws arena bounds, cores, unit circles, and projectile spheres/trails per tick
 │  ├─ UI graphics/text are rendered by a dedicated fixed-zoom UI camera
 │  └─ Phaser main camera stores clamped center/zoom state for world pan + zoom
 ├─ Headless Simulation System (tank-tug/src/game/sim/prototypeSim.ts)
@@ -60,10 +60,17 @@ Tank Tug
 │  │  ├─ SoA ECS-like storage (typed arrays per component)
 │  │  ├─ deterministic fixed-step loop
 │  │  ├─ seeded RNG-driven spawn variance
+│  │  ├─ CSV roster data ingestion (`src/game/sim/unitArchetypes.csv`) with strict schema/value parsing and unique row `unitKey`
 │  │  ├─ 2D spatial bucket broadphase for target acquisition
 │  │  ├─ full XY movement and Euclidean target selection
 │  │  ├─ uniform movement speed shared by all spawned units
-│  │  ├─ combat resolution (shield, armor, HP, core breach)
+│  │  ├─ data-driven archetype attack style (`melee` or `ranged`) with fail-fast validation
+│  │  ├─ melee range lock (20) + melee ground-only targeting requirement
+│  │  ├─ ranged authored range contract (40..220, no runtime clamp)
+│  │  ├─ explicit explosive radius per archetype (`0` non-explosive, `>0` explosive) for melee and ranged attacks
+│  │  ├─ ranged attack profiles (direct / projectile with single-target or explosive impacts)
+│  │  ├─ non-homing projectile simulation (fixed aim point + per-tick travel and impact)
+│  │  ├─ combat resolution (shield, armor, HP, core breach, area damage)
 │  │  └─ victory resolution (core destroy, wipe, tick cap tiebreak)
 │  └─ class XorShift32
 │     └─ deterministic RNG source for replayable simulation

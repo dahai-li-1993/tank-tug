@@ -1,3 +1,5 @@
+import unitArchetypesCsv from './unitArchetypes.csv?raw';
+
 export type RaceId = 'beast' | 'alien' | 'human';
 
 const TEAM_LEFT = 0;
@@ -10,20 +12,46 @@ const ATTACK_GROUNDED = 1;
 const ATTACK_FLYING = 2;
 const ATTACK_BOTH = ATTACK_GROUNDED | ATTACK_FLYING;
 const UNIFORM_UNIT_SPEED = 2.2;
+const ATTACK_MEDIUM_DIRECT: 0 = 0;
+const ATTACK_MEDIUM_PROJECTILE: 1 = 1;
+const IMPACT_SINGLE: 0 = 0;
+const IMPACT_EXPLOSIVE: 1 = 1;
+const ATTACK_STYLE_MELEE = 'melee';
+const ATTACK_STYLE_RANGED = 'ranged';
+const MELEE_LOCKED_RANGE = 20;
+const RANGED_MIN_RANGE = 40;
+const RANGED_MAX_RANGE = 220;
+const PROJECTILE_BASE_SPEED = 3.4;
+const PROJECTILE_RANGE_SPEED_FACTOR = 0.06;
+const PROJECTILE_SINGLE_HIT_RADIUS = 8;
+const MAX_PROJECTILES = 7000;
 
 type TeamId = 0 | 1;
+type AttackStyle = 'melee' | 'ranged';
+
+interface AttackProfile
+{
+    medium: 0 | 1;
+    impactMode: 0 | 1;
+    splashRadius: number;
+    projectileSpeed: number;
+    hitRadius: number;
+}
 
 interface UnitArchetype
 {
+    unitKey: string;
     layer: 0 | 1;
     hp: number;
     shield: number;
     armor: number;
     damage: number;
     cooldownTicks: number;
+    attackStyle: AttackStyle;
     range: number;
     speed: number;
     attackMask: number;
+    explosiveRadius: number;
     renderSize: number;
     capacity: number;
     count: number;
@@ -61,32 +89,170 @@ const DEFAULT_CONFIG: SimConfig = {
     coreHpStart: 5000
 };
 
-const RACE_PRESETS: Record<RaceId, UnitArchetype[]> = {
-    beast: [
-        { layer: LAYER_GROUNDED, hp: 55, shield: 0, armor: 0, damage: 8, cooldownTicks: 11, range: 14, speed: 2.5, attackMask: ATTACK_GROUNDED, renderSize: 4, capacity: 2, count: 320 },
-        { layer: LAYER_GROUNDED, hp: 90, shield: 0, armor: 0, damage: 10, cooldownTicks: 13, range: 42, speed: 2.2, attackMask: ATTACK_BOTH, renderSize: 4, capacity: 3, count: 140 },
-        { layer: LAYER_GROUNDED, hp: 260, shield: 0, armor: 2, damage: 22, cooldownTicks: 20, range: 18, speed: 1.6, attackMask: ATTACK_GROUNDED, renderSize: 6, capacity: 8, count: 80 },
-        { layer: LAYER_FLYING, hp: 180, shield: 0, armor: 1, damage: 26, cooldownTicks: 19, range: 46, speed: 2.9, attackMask: ATTACK_BOTH, renderSize: 5, capacity: 10, count: 40 },
-        { layer: LAYER_GROUNDED, hp: 3600, shield: 0, armor: 6, damage: 170, cooldownTicks: 45, range: 22, speed: 1.0, attackMask: ATTACK_GROUNDED, renderSize: 12, capacity: 125, count: 12 },
-        { layer: LAYER_FLYING, hp: 4400, shield: 0, armor: 6, damage: 190, cooldownTicks: 48, range: 60, speed: 1.3, attackMask: ATTACK_BOTH, renderSize: 12, capacity: 145, count: 8 }
-    ],
-    alien: [
-        { layer: LAYER_GROUNDED, hp: 80, shield: 40, armor: 0, damage: 13, cooldownTicks: 14, range: 44, speed: 2.1, attackMask: ATTACK_GROUNDED, renderSize: 4, capacity: 3, count: 200 },
-        { layer: LAYER_GROUNDED, hp: 220, shield: 120, armor: 1, damage: 36, cooldownTicks: 20, range: 52, speed: 2.2, attackMask: ATTACK_BOTH, renderSize: 5, capacity: 14, count: 130 },
-        { layer: LAYER_GROUNDED, hp: 95, shield: 70, armor: 0, damage: 16, cooldownTicks: 16, range: 54, speed: 2.0, attackMask: ATTACK_BOTH, renderSize: 4, capacity: 5, count: 90 },
-        { layer: LAYER_FLYING, hp: 150, shield: 90, armor: 1, damage: 28, cooldownTicks: 15, range: 56, speed: 3.0, attackMask: ATTACK_BOTH, renderSize: 5, capacity: 9, count: 70 },
-        { layer: LAYER_GROUNDED, hp: 2600, shield: 1800, armor: 6, damage: 160, cooldownTicks: 40, range: 38, speed: 1.1, attackMask: ATTACK_BOTH, renderSize: 12, capacity: 135, count: 12 },
-        { layer: LAYER_FLYING, hp: 3000, shield: 2200, armor: 6, damage: 210, cooldownTicks: 50, range: 68, speed: 1.3, attackMask: ATTACK_BOTH, renderSize: 12, capacity: 155, count: 8 }
-    ],
-    human: [
-        { layer: LAYER_GROUNDED, hp: 80, shield: 0, armor: 0, damage: 12, cooldownTicks: 13, range: 42, speed: 2.2, attackMask: ATTACK_BOTH, renderSize: 4, capacity: 3, count: 240 },
-        { layer: LAYER_GROUNDED, hp: 300, shield: 0, armor: 3, damage: 21, cooldownTicks: 22, range: 18, speed: 1.6, attackMask: ATTACK_GROUNDED, renderSize: 6, capacity: 9, count: 110 },
-        { layer: LAYER_GROUNDED, hp: 240, shield: 0, armor: 1, damage: 62, cooldownTicks: 34, range: 60, speed: 1.7, attackMask: ATTACK_BOTH, renderSize: 5, capacity: 15, count: 90 },
-        { layer: LAYER_FLYING, hp: 220, shield: 0, armor: 1, damage: 30, cooldownTicks: 16, range: 56, speed: 3.2, attackMask: ATTACK_BOTH, renderSize: 5, capacity: 10, count: 70 },
-        { layer: LAYER_GROUNDED, hp: 4300, shield: 0, armor: 7, damage: 180, cooldownTicks: 46, range: 26, speed: 1.0, attackMask: ATTACK_GROUNDED, renderSize: 12, capacity: 130, count: 14 },
-        { layer: LAYER_FLYING, hp: 5200, shield: 0, armor: 7, damage: 220, cooldownTicks: 52, range: 66, speed: 1.2, attackMask: ATTACK_BOTH, renderSize: 12, capacity: 160, count: 8 }
-    ]
-};
+const UNIT_ARCHETYPE_CSV_HEADERS = [
+    'unitKey',
+    'race',
+    'layer',
+    'hp',
+    'shield',
+    'armor',
+    'damage',
+    'cooldownTicks',
+    'attackStyle',
+    'range',
+    'speed',
+    'attackMask',
+    'renderSize',
+    'capacity',
+    'count',
+    'explosiveRadius'
+];
+
+const RACE_PRESETS = parseUnitArchetypesCsv(unitArchetypesCsv);
+
+function parseUnitArchetypesCsv (csv: string): Record<RaceId, UnitArchetype[]>
+{
+    const rows = csv
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+    if (rows.length < 2)
+    {
+        throw new Error('Unit archetype CSV is empty or missing data rows.');
+    }
+
+    const header = rows[0].split(',').map((cell) => cell.trim());
+    if (header.length !== UNIT_ARCHETYPE_CSV_HEADERS.length)
+    {
+        throw new Error('Unit archetype CSV header has unexpected column count.');
+    }
+    for (let i = 0; i < UNIT_ARCHETYPE_CSV_HEADERS.length; i++)
+    {
+        if (header[i] !== UNIT_ARCHETYPE_CSV_HEADERS[i])
+        {
+            throw new Error(`Unit archetype CSV header mismatch at column ${i + 1}.`);
+        }
+    }
+
+    const presets: Record<RaceId, UnitArchetype[]> = {
+        beast: [],
+        alien: [],
+        human: []
+    };
+    const seenKeys = new Set<string>();
+
+    for (let rowIndex = 1; rowIndex < rows.length; rowIndex++)
+    {
+        const rowNumber = rowIndex + 1;
+        const cells = rows[rowIndex].split(',').map((cell) => cell.trim());
+        if (cells.length !== UNIT_ARCHETYPE_CSV_HEADERS.length)
+        {
+            throw new Error(`Unit archetype CSV row ${rowNumber} has unexpected column count.`);
+        }
+
+        const unitKey = parseUnitKey(cells[0], rowNumber);
+        if (seenKeys.has(unitKey))
+        {
+            throw new Error(`Duplicate unitKey '${unitKey}' at CSV row ${rowNumber}.`);
+        }
+        seenKeys.add(unitKey);
+
+        const race = parseRaceId(cells[1], rowNumber);
+        const archetype: UnitArchetype = {
+            unitKey,
+            layer: parseLayerId(cells[2], rowNumber),
+            hp: parseCsvNumber('hp', cells[3], rowNumber),
+            shield: parseCsvNumber('shield', cells[4], rowNumber),
+            armor: parseCsvNumber('armor', cells[5], rowNumber),
+            damage: parseCsvNumber('damage', cells[6], rowNumber),
+            cooldownTicks: parseCsvNumber('cooldownTicks', cells[7], rowNumber),
+            attackStyle: parseAttackStyle(cells[8], rowNumber),
+            range: parseCsvNumber('range', cells[9], rowNumber),
+            speed: parseCsvNumber('speed', cells[10], rowNumber),
+            attackMask: parseAttackMask(cells[11], rowNumber),
+            renderSize: parseCsvNumber('renderSize', cells[12], rowNumber),
+            capacity: parseCsvNumber('capacity', cells[13], rowNumber),
+            count: parseCsvNumber('count', cells[14], rowNumber),
+            explosiveRadius: parseCsvNumber('explosiveRadius', cells[15], rowNumber)
+        };
+
+        presets[race].push(archetype);
+    }
+
+    return presets;
+}
+
+function parseUnitKey (value: string, rowNumber: number): string
+{
+    if (value.length === 0)
+    {
+        throw new Error(`Missing unitKey at CSV row ${rowNumber}.`);
+    }
+    return value;
+}
+
+function parseRaceId (value: string, rowNumber: number): RaceId
+{
+    if (value === 'beast' || value === 'alien' || value === 'human')
+    {
+        return value;
+    }
+    throw new Error(`Invalid race '${value}' at CSV row ${rowNumber}.`);
+}
+
+function parseLayerId (value: string, rowNumber: number): 0 | 1
+{
+    if (value === 'grounded')
+    {
+        return LAYER_GROUNDED;
+    }
+    if (value === 'flying')
+    {
+        return LAYER_FLYING;
+    }
+    throw new Error(`Invalid layer '${value}' at CSV row ${rowNumber}.`);
+}
+
+function parseAttackStyle (value: string, rowNumber: number): AttackStyle
+{
+    if (value === ATTACK_STYLE_MELEE || value === ATTACK_STYLE_RANGED)
+    {
+        return value;
+    }
+    throw new Error(`Invalid attackStyle '${value}' at CSV row ${rowNumber}.`);
+}
+
+function parseAttackMask (value: string, rowNumber: number): number
+{
+    if (value === 'grounded')
+    {
+        return ATTACK_GROUNDED;
+    }
+    if (value === 'flying')
+    {
+        return ATTACK_FLYING;
+    }
+    if (value === 'both')
+    {
+        return ATTACK_BOTH;
+    }
+    throw new Error(`Invalid attackMask '${value}' at CSV row ${rowNumber}.`);
+}
+
+function parseCsvNumber (field: string, value: string, rowNumber: number): number
+{
+    if (value.length === 0)
+    {
+        throw new Error(`Missing numeric value for '${field}' at CSV row ${rowNumber}.`);
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed))
+    {
+        throw new Error(`Invalid numeric value for '${field}' at CSV row ${rowNumber}.`);
+    }
+    return parsed;
+}
 
 class XorShift32
 {
@@ -144,6 +310,30 @@ export class TugPrototypeSim
     readonly capacity: Float32Array;
     readonly renderSize: Float32Array;
     readonly spawnOrder: Int32Array;
+    readonly attackMedium: Uint8Array;
+    readonly impactMode: Uint8Array;
+    readonly splashRadius: Float32Array;
+    readonly projectileSpeed: Float32Array;
+    readonly hitRadius: Float32Array;
+
+    readonly maxProjectiles: number;
+    readonly projectileActive: Uint8Array;
+    readonly projectileTeam: Uint8Array;
+    readonly projectileAttackMask: Uint8Array;
+    readonly projectileExplosive: Uint8Array;
+    readonly projectileX: Float32Array;
+    readonly projectileY: Float32Array;
+    readonly projectilePrevX: Float32Array;
+    readonly projectilePrevY: Float32Array;
+    readonly projectileAimX: Float32Array;
+    readonly projectileAimY: Float32Array;
+    readonly projectileVelX: Float32Array;
+    readonly projectileVelY: Float32Array;
+    readonly projectileStep: Float32Array;
+    readonly projectileRemaining: Float32Array;
+    readonly projectileRawDamage: Float32Array;
+    readonly projectileSplashRadius: Float32Array;
+    readonly projectileHitRadius: Float32Array;
 
     entityCount: number;
     tick: number;
@@ -226,6 +416,30 @@ export class TugPrototypeSim
         this.capacity = new Float32Array(this.maxEntities);
         this.renderSize = new Float32Array(this.maxEntities);
         this.spawnOrder = new Int32Array(this.maxEntities);
+        this.attackMedium = new Uint8Array(this.maxEntities);
+        this.impactMode = new Uint8Array(this.maxEntities);
+        this.splashRadius = new Float32Array(this.maxEntities);
+        this.projectileSpeed = new Float32Array(this.maxEntities);
+        this.hitRadius = new Float32Array(this.maxEntities);
+
+        this.maxProjectiles = MAX_PROJECTILES;
+        this.projectileActive = new Uint8Array(this.maxProjectiles);
+        this.projectileTeam = new Uint8Array(this.maxProjectiles);
+        this.projectileAttackMask = new Uint8Array(this.maxProjectiles);
+        this.projectileExplosive = new Uint8Array(this.maxProjectiles);
+        this.projectileX = new Float32Array(this.maxProjectiles);
+        this.projectileY = new Float32Array(this.maxProjectiles);
+        this.projectilePrevX = new Float32Array(this.maxProjectiles);
+        this.projectilePrevY = new Float32Array(this.maxProjectiles);
+        this.projectileAimX = new Float32Array(this.maxProjectiles);
+        this.projectileAimY = new Float32Array(this.maxProjectiles);
+        this.projectileVelX = new Float32Array(this.maxProjectiles);
+        this.projectileVelY = new Float32Array(this.maxProjectiles);
+        this.projectileStep = new Float32Array(this.maxProjectiles);
+        this.projectileRemaining = new Float32Array(this.maxProjectiles);
+        this.projectileRawDamage = new Float32Array(this.maxProjectiles);
+        this.projectileSplashRadius = new Float32Array(this.maxProjectiles);
+        this.projectileHitRadius = new Float32Array(this.maxProjectiles);
 
         this.entityCount = 0;
         this.tick = 0;
@@ -260,6 +474,8 @@ export class TugPrototypeSim
         this.target.fill(-1);
         this.nextAttackTick.fill(0);
         this.nextInBucket.fill(-1);
+        this.projectileActive.fill(0);
+        this.projectileRemaining.fill(0);
 
         this.spawnRace(TEAM_LEFT, this.leftRace);
         this.spawnRace(TEAM_RIGHT, this.rightRace);
@@ -308,7 +524,7 @@ export class TugPrototypeSim
                 {
                     if (this.tick >= this.nextAttackTick[i])
                     {
-                        this.pendingDamage[targetId] += this.computeDamage(i, targetId);
+                        this.resolveAttack(i, targetId);
                         this.nextAttackTick[i] = this.tick + this.cooldownTicks[i];
                     }
                 }
@@ -323,6 +539,8 @@ export class TugPrototypeSim
             }
         }
 
+        this.rebuildBuckets();
+        this.stepProjectiles();
         this.applyPendingDamage();
         this.refreshAliveStats();
         this.resolveVictory();
@@ -336,8 +554,10 @@ export class TugPrototypeSim
         const yMin = this.basePadding + 8;
         const ySpan = Math.max(1, this.arenaHeight - (this.basePadding + 8) * 2);
 
-        for (const archetype of preset)
+        for (let index = 0; index < preset.length; index++)
         {
+            const archetype = preset[index];
+            this.validateArchetype(race, index, archetype);
             const depthStep = archetype.layer === LAYER_GROUNDED ? 5.0 : 6.0;
             for (let n = 0; n < archetype.count; n++)
             {
@@ -362,6 +582,7 @@ export class TugPrototypeSim
             return;
         }
 
+        const attackProfile = this.deriveAttackProfile(archetype);
         const i = this.entityCount++;
         this.alive[i] = 1;
         this.team[i] = teamId;
@@ -372,7 +593,9 @@ export class TugPrototypeSim
         this.shield[i] = archetype.shield;
         this.armor[i] = archetype.armor;
         this.damage[i] = archetype.damage;
-        this.range[i] = archetype.range;
+        this.range[i] = archetype.attackStyle === ATTACK_STYLE_MELEE
+            ? MELEE_LOCKED_RANGE
+            : archetype.range;
         this.speed[i] = UNIFORM_UNIT_SPEED;
         this.attackMask[i] = archetype.attackMask;
         this.cooldownTicks[i] = archetype.cooldownTicks;
@@ -381,7 +604,72 @@ export class TugPrototypeSim
         this.capacity[i] = archetype.capacity;
         this.renderSize[i] = archetype.renderSize;
         this.spawnOrder[i] = this.spawnCounter++;
+        this.attackMedium[i] = attackProfile.medium;
+        this.impactMode[i] = attackProfile.impactMode;
+        this.splashRadius[i] = attackProfile.splashRadius;
+        this.projectileSpeed[i] = attackProfile.projectileSpeed;
+        this.hitRadius[i] = attackProfile.hitRadius;
         this.nextInBucket[i] = -1;
+    }
+
+    private validateArchetype (race: RaceId, index: number, archetype: UnitArchetype): void
+    {
+        if (archetype.explosiveRadius < 0)
+        {
+            throw new Error(
+                `Invalid archetype ${race}[${index}]: explosiveRadius must be >= 0.`
+            );
+        }
+
+        if (archetype.attackStyle === ATTACK_STYLE_MELEE)
+        {
+            if (archetype.attackMask !== ATTACK_GROUNDED)
+            {
+                throw new Error(
+                    `Invalid archetype ${race}[${index}]: melee units must use ATTACK_GROUNDED mask.`
+                );
+            }
+            if (archetype.range !== MELEE_LOCKED_RANGE)
+            {
+                throw new Error(
+                    `Invalid archetype ${race}[${index}]: melee units must author range=${MELEE_LOCKED_RANGE}.`
+                );
+            }
+            return;
+        }
+
+        if (archetype.range < RANGED_MIN_RANGE || archetype.range > RANGED_MAX_RANGE)
+        {
+            throw new Error(
+                `Invalid archetype ${race}[${index}]: ranged units must author range within ${RANGED_MIN_RANGE}..${RANGED_MAX_RANGE}.`
+            );
+        }
+    }
+
+    private deriveAttackProfile (archetype: UnitArchetype): AttackProfile
+    {
+        if (archetype.attackStyle === ATTACK_STYLE_MELEE)
+        {
+            const impactMode = archetype.explosiveRadius > 0 ? IMPACT_EXPLOSIVE : IMPACT_SINGLE;
+            return {
+                medium: ATTACK_MEDIUM_DIRECT,
+                impactMode,
+                splashRadius: archetype.explosiveRadius,
+                projectileSpeed: 0,
+                hitRadius: 0
+            };
+        }
+
+        const medium = ATTACK_MEDIUM_PROJECTILE;
+        const impactMode = archetype.explosiveRadius > 0 ? IMPACT_EXPLOSIVE : IMPACT_SINGLE;
+
+        return {
+            medium,
+            impactMode,
+            splashRadius: archetype.explosiveRadius,
+            projectileSpeed: PROJECTILE_BASE_SPEED + archetype.range * PROJECTILE_RANGE_SPEED_FACTOR,
+            hitRadius: Math.max(PROJECTILE_SINGLE_HIT_RADIUS, archetype.renderSize * 1.2)
+        };
     }
 
     private rebuildBuckets (): void
@@ -457,10 +745,394 @@ export class TugPrototypeSim
         this.y[i] = this.clampY(this.y[i] + dy * inv);
     }
 
+    private resolveAttack (attacker: number, targetId: number): void
+    {
+        const attackerTeam = this.team[attacker] as TeamId;
+        const targetX = this.x[targetId];
+        const targetY = this.y[targetId];
+        const rawDamage = this.damage[attacker];
+        const isExplosive = this.impactMode[attacker] === IMPACT_EXPLOSIVE;
+
+        const medium = this.attackMedium[attacker];
+        if (medium === ATTACK_MEDIUM_DIRECT)
+        {
+            if (isExplosive)
+            {
+                this.applyExplosionImpactAtPoint(
+                    attackerTeam,
+                    this.attackMask[attacker],
+                    targetX,
+                    targetY,
+                    rawDamage,
+                    this.splashRadius[attacker]
+                );
+                return;
+            }
+            this.pendingDamage[targetId] += this.computeDamage(attacker, targetId);
+            return;
+        }
+
+        const attackerX = this.x[attacker];
+        const attackerY = this.y[attacker];
+
+        this.spawnProjectile(
+            attackerTeam,
+            this.attackMask[attacker],
+            attackerX,
+            attackerY,
+            targetX,
+            targetY,
+            rawDamage,
+            isExplosive,
+            this.splashRadius[attacker],
+            this.hitRadius[attacker],
+            this.projectileSpeed[attacker]
+        );
+    }
+
+    private spawnProjectile (
+        teamId: TeamId,
+        attackMask: number,
+        startX: number,
+        startY: number,
+        aimX: number,
+        aimY: number,
+        rawDamage: number,
+        explosive: boolean,
+        splashRadius: number,
+        hitRadius: number,
+        stepSpeed: number
+    ): void
+    {
+        const dx = aimX - startX;
+        const dy = aimY - startY;
+        const distSq = dx * dx + dy * dy;
+        if (distSq <= 0.0001)
+        {
+            if (explosive)
+            {
+                this.applyExplosionImpactAtPoint(teamId, attackMask, aimX, aimY, rawDamage, splashRadius);
+            }
+            else
+            {
+                this.applySingleImpactAtPoint(teamId, attackMask, aimX, aimY, rawDamage, hitRadius);
+            }
+            return;
+        }
+
+        const slot = this.findFreeProjectileSlot();
+        if (slot < 0)
+        {
+            return;
+        }
+
+        const dist = Math.sqrt(distSq);
+        const inv = 1 / dist;
+        const speed = Math.max(0.1, stepSpeed);
+        this.projectileActive[slot] = 1;
+        this.projectileTeam[slot] = teamId;
+        this.projectileAttackMask[slot] = attackMask;
+        this.projectileExplosive[slot] = explosive ? 1 : 0;
+        this.projectileX[slot] = startX;
+        this.projectileY[slot] = startY;
+        this.projectilePrevX[slot] = startX;
+        this.projectilePrevY[slot] = startY;
+        this.projectileAimX[slot] = aimX;
+        this.projectileAimY[slot] = aimY;
+        this.projectileVelX[slot] = dx * inv * speed;
+        this.projectileVelY[slot] = dy * inv * speed;
+        this.projectileStep[slot] = speed;
+        this.projectileRemaining[slot] = dist;
+        this.projectileRawDamage[slot] = rawDamage;
+        this.projectileSplashRadius[slot] = splashRadius;
+        this.projectileHitRadius[slot] = hitRadius;
+    }
+
+    private stepProjectiles (): void
+    {
+        for (let i = 0; i < this.maxProjectiles; i++)
+        {
+            if (this.projectileActive[i] === 0)
+            {
+                continue;
+            }
+
+            this.projectilePrevX[i] = this.projectileX[i];
+            this.projectilePrevY[i] = this.projectileY[i];
+
+            const remaining = this.projectileRemaining[i];
+            const step = this.projectileStep[i];
+            if (remaining <= step)
+            {
+                const impactX = this.projectileAimX[i];
+                const impactY = this.projectileAimY[i];
+                this.projectileX[i] = impactX;
+                this.projectileY[i] = impactY;
+
+                const teamId = this.projectileTeam[i] as TeamId;
+                if (this.projectileExplosive[i] !== 0)
+                {
+                    this.applyExplosionImpactAtPoint(
+                        teamId,
+                        this.projectileAttackMask[i],
+                        impactX,
+                        impactY,
+                        this.projectileRawDamage[i],
+                        this.projectileSplashRadius[i]
+                    );
+                }
+                else
+                {
+                    this.applySingleImpactAtPoint(
+                        teamId,
+                        this.projectileAttackMask[i],
+                        impactX,
+                        impactY,
+                        this.projectileRawDamage[i],
+                        this.projectileHitRadius[i]
+                    );
+                }
+
+                this.projectileActive[i] = 0;
+                this.projectileRemaining[i] = 0;
+                continue;
+            }
+
+            this.projectileX[i] += this.projectileVelX[i];
+            this.projectileY[i] += this.projectileVelY[i];
+            this.projectileRemaining[i] = remaining - step;
+        }
+    }
+
+    private findFreeProjectileSlot (): number
+    {
+        for (let i = 0; i < this.maxProjectiles; i++)
+        {
+            if (this.projectileActive[i] === 0)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private applySingleImpactAtPoint (
+        attackerTeam: TeamId,
+        attackMask: number,
+        impactX: number,
+        impactY: number,
+        rawDamage: number,
+        hitRadius: number
+    ): void
+    {
+        const enemyTeam = attackerTeam === TEAM_LEFT ? TEAM_RIGHT : TEAM_LEFT;
+        const radius = Math.max(1, hitRadius);
+        const radiusSq = radius * radius;
+        const radiusBuckets = Math.ceil(radius / this.bucketSize);
+        const centerBx = this.toBucketX(impactX);
+        const centerBy = this.toBucketY(impactY);
+        let bestTarget = -1;
+
+        if ((attackMask & ATTACK_GROUNDED) !== 0)
+        {
+            const group = enemyTeam * 2 + LAYER_GROUNDED;
+            bestTarget = this.findBestImpactTargetInNeighborhood(
+                group,
+                centerBx,
+                centerBy,
+                radiusBuckets,
+                radiusSq,
+                impactX,
+                impactY,
+                bestTarget
+            );
+        }
+        if ((attackMask & ATTACK_FLYING) !== 0)
+        {
+            const group = enemyTeam * 2 + LAYER_FLYING;
+            bestTarget = this.findBestImpactTargetInNeighborhood(
+                group,
+                centerBx,
+                centerBy,
+                radiusBuckets,
+                radiusSq,
+                impactX,
+                impactY,
+                bestTarget
+            );
+        }
+
+        if (bestTarget >= 0)
+        {
+            this.pendingDamage[bestTarget] += this.computeMitigatedDamage(rawDamage, bestTarget);
+        }
+    }
+
+    private applyExplosionImpactAtPoint (
+        attackerTeam: TeamId,
+        attackMask: number,
+        impactX: number,
+        impactY: number,
+        rawDamage: number,
+        splashRadius: number
+    ): void
+    {
+        const enemyTeam = attackerTeam === TEAM_LEFT ? TEAM_RIGHT : TEAM_LEFT;
+        const radius = Math.max(1, splashRadius);
+        const radiusSq = radius * radius;
+        const radiusBuckets = Math.ceil(radius / this.bucketSize);
+        const centerBx = this.toBucketX(impactX);
+        const centerBy = this.toBucketY(impactY);
+
+        if ((attackMask & ATTACK_GROUNDED) !== 0)
+        {
+            const group = enemyTeam * 2 + LAYER_GROUNDED;
+            this.applyExplosionForGroup(group, centerBx, centerBy, radiusBuckets, radiusSq, impactX, impactY, rawDamage);
+        }
+        if ((attackMask & ATTACK_FLYING) !== 0)
+        {
+            const group = enemyTeam * 2 + LAYER_FLYING;
+            this.applyExplosionForGroup(group, centerBx, centerBy, radiusBuckets, radiusSq, impactX, impactY, rawDamage);
+        }
+    }
+
+    private findBestImpactTargetInNeighborhood (
+        group: number,
+        centerBx: number,
+        centerBy: number,
+        radiusBuckets: number,
+        radiusSq: number,
+        impactX: number,
+        impactY: number,
+        currentBest: number
+    ): number
+    {
+        let best = currentBest;
+        const minBy = Math.max(0, centerBy - radiusBuckets);
+        const maxBy = Math.min(this.bucketRows - 1, centerBy + radiusBuckets);
+        const minBx = Math.max(0, centerBx - radiusBuckets);
+        const maxBx = Math.min(this.bucketCols - 1, centerBx + radiusBuckets);
+
+        for (let by = minBy; by <= maxBy; by++)
+        {
+            for (let bx = minBx; bx <= maxBx; bx++)
+            {
+                const bucket = by * this.bucketCols + bx;
+                let idx = this.bucketHeads[group * this.bucketCount + bucket];
+                while (idx >= 0)
+                {
+                    if (this.isImpactCandidateBetter(idx, radiusSq, impactX, impactY, best))
+                    {
+                        best = idx;
+                    }
+                    idx = this.nextInBucket[idx];
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private isImpactCandidateBetter (
+        candidate: number,
+        radiusSq: number,
+        impactX: number,
+        impactY: number,
+        currentBest: number
+    ): boolean
+    {
+        if (this.alive[candidate] === 0)
+        {
+            return false;
+        }
+
+        const dx = this.x[candidate] - impactX;
+        const dy = this.y[candidate] - impactY;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > radiusSq)
+        {
+            return false;
+        }
+
+        if (currentBest < 0)
+        {
+            return true;
+        }
+
+        const bestDx = this.x[currentBest] - impactX;
+        const bestDy = this.y[currentBest] - impactY;
+        const bestDistSq = bestDx * bestDx + bestDy * bestDy;
+        if (distSq < bestDistSq)
+        {
+            return true;
+        }
+        if (distSq > bestDistSq)
+        {
+            return false;
+        }
+
+        const candHp = this.hp[candidate] + this.shield[candidate];
+        const bestHp = this.hp[currentBest] + this.shield[currentBest];
+        if (candHp < bestHp)
+        {
+            return true;
+        }
+        if (candHp > bestHp)
+        {
+            return false;
+        }
+
+        return this.spawnOrder[candidate] < this.spawnOrder[currentBest];
+    }
+
+    private applyExplosionForGroup (
+        group: number,
+        centerBx: number,
+        centerBy: number,
+        radiusBuckets: number,
+        radiusSq: number,
+        impactX: number,
+        impactY: number,
+        rawDamage: number
+    ): void
+    {
+        const minBy = Math.max(0, centerBy - radiusBuckets);
+        const maxBy = Math.min(this.bucketRows - 1, centerBy + radiusBuckets);
+        const minBx = Math.max(0, centerBx - radiusBuckets);
+        const maxBx = Math.min(this.bucketCols - 1, centerBx + radiusBuckets);
+
+        for (let by = minBy; by <= maxBy; by++)
+        {
+            for (let bx = minBx; bx <= maxBx; bx++)
+            {
+                const bucket = by * this.bucketCols + bx;
+                let idx = this.bucketHeads[group * this.bucketCount + bucket];
+                while (idx >= 0)
+                {
+                    if (this.alive[idx] !== 0)
+                    {
+                        const dx = this.x[idx] - impactX;
+                        const dy = this.y[idx] - impactY;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq <= radiusSq)
+                        {
+                            this.pendingDamage[idx] += this.computeMitigatedDamage(rawDamage, idx);
+                        }
+                    }
+                    idx = this.nextInBucket[idx];
+                }
+            }
+        }
+    }
+
     private computeDamage (attacker: number, defender: number): number
     {
-        const raw = this.damage[attacker];
-        const mitigated = raw - this.armor[defender];
+        return this.computeMitigatedDamage(this.damage[attacker], defender);
+    }
+
+    private computeMitigatedDamage (rawDamage: number, defender: number): number
+    {
+        const mitigated = rawDamage - this.armor[defender];
         return mitigated > 1 ? mitigated : 1;
     }
 

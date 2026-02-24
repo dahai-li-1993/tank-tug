@@ -35,6 +35,8 @@ const WORLD_BORDER_COLOR = 0xffffff;
 const LEFT_TEAM_COLOR = 0x1fad4f;
 const RIGHT_TEAM_COLOR = 0xd12b2b;
 const CORE_COLOR = 0x4a90e2;
+const LEFT_PROJECTILE_COLOR = 0x99f58a;
+const RIGHT_PROJECTILE_COLOR = 0xff8c8c;
 const CAMERA_PAN_SPEED = 420;
 const CAMERA_KEY_ZOOM_SPEED = 520;
 const CAMERA_WHEEL_ZOOM_SCALE = 0.42;
@@ -120,7 +122,7 @@ export class Game extends Scene
                 'U/I/O: RIGHT race Beast/Alien/Human',
                 'R: restart (new seed)  SPACE: pause  ESC: main menu',
                 'W/A/S/D: pan camera  Q/E or mouse wheel: zoom',
-                '2D view: LEFT green / RIGHT red'
+                'Ranged prototype: projectile only (sphere + trail)'
             ].join('\n')
         );
 
@@ -403,6 +405,34 @@ export class Game extends Scene
 
             graphics.fillStyle(teamColor, alpha);
             graphics.fillCircle(this.sim.x[i], this.sim.y[i], radius);
+        }
+
+        this.drawProjectileEffects(graphics);
+    }
+
+    private drawProjectileEffects (graphics: GameObjects.Graphics): void
+    {
+        for (let i = 0; i < this.sim.maxProjectiles; i++)
+        {
+            if (this.sim.projectileActive[i] === 0)
+            {
+                continue;
+            }
+
+            const isLeftTeam = this.sim.projectileTeam[i] === TEAM_LEFT;
+            const color = isLeftTeam ? LEFT_PROJECTILE_COLOR : RIGHT_PROJECTILE_COLOR;
+            const explosive = this.sim.projectileExplosive[i] !== 0;
+            const radius = explosive ? 3.0 : 2.2;
+
+            graphics.lineStyle(explosive ? 2 : 1.5, color, explosive ? 0.46 : 0.35);
+            graphics.lineBetween(
+                this.sim.projectilePrevX[i],
+                this.sim.projectilePrevY[i],
+                this.sim.projectileX[i],
+                this.sim.projectileY[i]
+            );
+            graphics.fillStyle(color, explosive ? 0.92 : 0.84);
+            graphics.fillCircle(this.sim.projectileX[i], this.sim.projectileY[i], radius);
         }
     }
 
