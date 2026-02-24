@@ -23,11 +23,12 @@ interface GameKeys
 const LEFT_RACES: RaceId[] = [ 'beast', 'alien', 'human' ];
 const RIGHT_RACES: RaceId[] = [ 'beast', 'alien', 'human' ];
 
-const WORLD_WIDTH = 960;
-const WORLD_HEIGHT = 560;
+const WORLD_WIDTH = 9600;
+const WORLD_HEIGHT = 5600;
 const CORE_PADDING = 24;
 const CORE_RADIUS = 18;
 const CORE_HP_MAX = 5000;
+const WORLD_BUCKET_SIZE = 240;
 const TEAM_LEFT = 0;
 const LAYER_FLYING = 1;
 const WORLD_BG_COLOR = 0x10161f;
@@ -37,12 +38,13 @@ const RIGHT_TEAM_COLOR = 0xd12b2b;
 const CORE_COLOR = 0x4a90e2;
 const LEFT_PROJECTILE_COLOR = 0x99f58a;
 const RIGHT_PROJECTILE_COLOR = 0xff8c8c;
-const CAMERA_PAN_SPEED = 420;
+const UNIT_RENDER_SCALE = 10;
+const CAMERA_PAN_SPEED = 4200;
 const CAMERA_KEY_ZOOM_SPEED = 520;
 const CAMERA_WHEEL_ZOOM_SCALE = 0.42;
 const CAMERA_WHEEL_MAX_DELTA = 120;
 const CAMERA_ZOOM_DELTA_SCALE = 0.0012;
-const CAMERA_ZOOM_MIN = 0.65;
+const CAMERA_ZOOM_MIN_FLOOR = 0.02;
 const CAMERA_ZOOM_MAX = 2.2;
 const CAMERA_PAN_MARGIN = 96;
 
@@ -89,7 +91,7 @@ export class Game extends Scene
             arenaHeight: WORLD_HEIGHT,
             basePadding: CORE_PADDING,
             coreRadius: CORE_RADIUS,
-            bucketSize: 24,
+            bucketSize: WORLD_BUCKET_SIZE,
             maxTicks: 2400,
             stepMs: 50,
             coreHpStart: CORE_HP_MAX
@@ -151,7 +153,7 @@ export class Game extends Scene
 
         this.keys = mappedKeys;
         this.setupCameras();
-        this.applyCameraTransform();
+        this.initializeCameraFullView();
 
         this.input.on('wheel', this.handleMouseWheel, this);
         this.scale.on('resize', this.handleResize, this);
@@ -282,9 +284,10 @@ export class Game extends Scene
         }
         if (zoomDelta !== 0)
         {
+            const minZoom = this.getMinimumCameraZoom();
             this.cameraZoom = PhaserMath.Clamp(
                 this.cameraZoom - zoomDelta * CAMERA_ZOOM_DELTA_SCALE,
-                CAMERA_ZOOM_MIN,
+                minZoom,
                 CAMERA_ZOOM_MAX
             );
         }
@@ -306,6 +309,11 @@ export class Game extends Scene
     private handleResize (): void
     {
         this.uiCamera?.setSize(this.scale.width, this.scale.height);
+        const minZoom = this.getMinimumCameraZoom();
+        if (this.cameraZoom < minZoom)
+        {
+            this.cameraZoom = minZoom;
+        }
         this.applyCameraTransform();
     }
 
@@ -330,6 +338,23 @@ export class Game extends Scene
 
         worldCamera.ignore([ this.uiGraphics, this.hudText, this.helpText ]);
         this.uiCamera.ignore(this.worldGraphics);
+    }
+
+    private initializeCameraFullView (): void
+    {
+        this.cameraCenterX = WORLD_WIDTH * 0.5;
+        this.cameraCenterY = WORLD_HEIGHT * 0.5;
+        this.cameraZoom = this.getMinimumCameraZoom();
+        this.applyCameraTransform();
+    }
+
+    private getMinimumCameraZoom (): number
+    {
+        const camera = this.cameras.main;
+        const fitZoomX = camera.width / WORLD_WIDTH;
+        const fitZoomY = camera.height / WORLD_HEIGHT;
+        const fitZoom = Math.min(fitZoomX, fitZoomY);
+        return PhaserMath.Clamp(fitZoom, CAMERA_ZOOM_MIN_FLOOR, CAMERA_ZOOM_MAX);
     }
 
     private applyCameraTransform (): void
@@ -401,13 +426,14 @@ export class Game extends Scene
 
             const teamColor = this.sim.team[i] === TEAM_LEFT ? LEFT_TEAM_COLOR : RIGHT_TEAM_COLOR;
             const alpha = this.sim.layer[i] === LAYER_FLYING ? 0.95 : 0.82;
-            const radius = Math.max(1.4, this.sim.renderSize[i] * 0.72);
+            const radius = Math.max(1.4, this.sim.renderSize[i] * 0.72 * UNIT_RENDER_SCALE);
 
             graphics.fillStyle(teamColor, alpha);
             graphics.fillCircle(this.sim.x[i], this.sim.y[i], radius);
         }
 
         this.drawProjectileEffects(graphics);
+        this.drawExplosionEffects(graphics);
     }
 
     private drawProjectileEffects (graphics: GameObjects.Graphics): void
@@ -433,6 +459,29 @@ export class Game extends Scene
             );
             graphics.fillStyle(color, explosive ? 0.92 : 0.84);
             graphics.fillCircle(this.sim.projectileX[i], this.sim.projectileY[i], radius);
+        }
+    }
+
+    private drawExplosionEffects (graphics: GameObjects.Graphics): void
+    {
+        for (let i = 0; i < this.sim.maxExplosionEffects; i++)
+        {
+            if (this.sim.explosionActive[i] === 0)
+            {
+                continue;
+            }
+
+            const isLeftTeam = this.sim.explosionTeam[i] === TEAM_LEFT;
+            const color = isLeftTeam ? LEFT_PROJECTILE_COLOR : RIGHT_PROJECTILE_COLOR;
+            const lifeMax = Math.max(1, this.sim.explosionLifeMax[i]);
+            const lifeRatio = PhaserMath.Clamp(this.sim.explosionLife[i] / lifeMax, 0, 1);
+            const expansion = 1 + (1 - lifeRatio) * 0.45;
+            const radius = this.sim.explosionRadius[i] * expansion;
+
+            graphics.fillStyle(color, 0.12 + lifeRatio * 0.26);
+            graphics.fillCircle(this.sim.explosionX[i], this.sim.explosionY[i], radius);
+            graphics.lineStyle(2.6, color, 0.2 + lifeRatio * 0.55);
+            graphics.strokeCircle(this.sim.explosionX[i], this.sim.explosionY[i], radius);
         }
     }
 
