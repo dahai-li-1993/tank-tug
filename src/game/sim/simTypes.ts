@@ -89,6 +89,7 @@ export interface SimState
     target: Int32Array;
     capacity: Float32Array;
     renderSize: Float32Array;
+    bodyRadius: Float32Array;
     spawnOrder: Int32Array;
     attackMedium: Uint8Array;
     impactMode: Uint8Array;
@@ -125,6 +126,7 @@ export interface SimState
     bucketHeads: Int32Array;
     nextInBucket: Int32Array;
     pendingDamage: Float32Array;
+    targetMeleePressure: Uint16Array;
 
     entityCount: number;
     tick: number;

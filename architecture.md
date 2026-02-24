@@ -60,10 +60,10 @@ Tank Tug
 │  ├─ class TugPrototypeSim (prototypeSim.ts)
 │  │  ├─ facade API consumed by Game scene (`reset`, `step`, public SoA arrays + scalar state)
 │  │  ├─ wires resolved config + context + typed-array state + system modules
-│  │  └─ deterministic fixed-step orchestration pipeline (effects -> buckets -> unit loop -> projectiles -> damage -> victory)
+│  │  └─ deterministic fixed-step orchestration pipeline (effects -> buckets -> melee-pressure seed -> unit loop with size-aware melee reach + local separation steering -> projectiles -> damage -> victory)
 │  ├─ Sim Data Modules
 │  │  ├─ simConstants.ts (combat/sim constants and CSV header schema)
-│  │  ├─ simTypes.ts (RaceId, config/state/context contracts)
+│  │  ├─ simTypes.ts (RaceId, config/state/context contracts including body radius + melee target pressure arrays)
 │  │  ├─ simConfig.ts (defaults + resolved derived config)
 │  │  ├─ simContext.ts (clamp/bucket helpers + core positions + seeded RNG context)
 │  │  └─ simState.ts (SoA allocation + reset lifecycle state)
@@ -71,17 +71,20 @@ Tank Tug
 │  │  └─ unitArchetypeCatalog.ts
 │  │     └─ CSV roster ingestion/strict parsing/validation into race presets
 │  ├─ Systems Modules (src/game/sim/systems)
-│  │  ├─ class SpawnSystem (archetype validation, spawn bands, melee runtime range lock, unit materialization)
+│  │  ├─ class SpawnSystem (archetype validation, spawn bands, melee runtime range lock, body radius derivation, unit materialization)
 │  │  ├─ class SpatialBucketSystem (bucket broadphase rebuild)
-│  │  ├─ class TargetingSystem (target validation/acquisition with tie-break rules)
-│  │  ├─ class CombatSystem (movement, attacks, projectiles, impacts, explosion effects)
+│  │  ├─ class EngagementPressureSystem (deterministic melee-attacker pressure tracking per target)
+│  │  ├─ class TargetingSystem (target validation/acquisition with tie-break rules + melee saturation scoring)
+│  │  ├─ class CombatSystem (goal-directed movement with local allied separation steering, attacks, projectiles, impacts, explosion effects)
 │  │  ├─ class DamageSystem (shield/HP application + death cleanup)
 │  │  └─ class VictorySystem (alive/capacity stats + finish resolution)
 │  ├─ class XorShift32 (rng.ts)
 │  │  └─ deterministic RNG source for replayable simulation
-│  └─ Characterization Tests
-│     └─ src/game/sim/__tests__/prototypeSim.characterization.test.ts
-│        └─ replay determinism, scenario snapshots, and Game-contract field checks
+│  └─ Simulation Tests
+│     ├─ src/game/sim/__tests__/prototypeSim.characterization.test.ts
+│     │  └─ replay determinism, scenario snapshots, and Game-contract field checks
+│     └─ src/game/sim/__tests__/prototypeSim.crowd-behavior.test.ts
+│        └─ anti-clump separation, focus-fire distribution, and size-vulnerability checks
 └─ Asset Usage System
    ├─ background: Boot preload -> used by Preloader/MainMenu
    └─ logo: Preloader preload -> used by MainMenu

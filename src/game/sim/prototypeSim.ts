@@ -1,4 +1,4 @@
-import { TEAM_LEFT, TEAM_RIGHT } from './simConstants';
+import { ATTACK_MEDIUM_DIRECT, TEAM_LEFT, TEAM_RIGHT } from './simConstants';
 import { resolveSimConfig } from './simConfig';
 import { createSimContext } from './simContext';
 import { createSimState, resetSimState } from './simState';
@@ -15,6 +15,7 @@ import {
 import { DEFAULT_RACE_PRESETS } from './unitArchetypeCatalog';
 import { CombatSystem } from './systems/combatSystem';
 import { DamageSystem } from './systems/damageSystem';
+import { EngagementPressureSystem } from './systems/engagementPressureSystem';
 import { SpatialBucketSystem } from './systems/spatialBucketSystem';
 import { SpawnSystem } from './systems/spawnSystem';
 import { TargetingSystem } from './systems/targetingSystem';
@@ -89,6 +90,7 @@ export class TugPrototypeSim
 
     private readonly spawnSystem: SpawnSystem;
     private readonly spatialBucketSystem: SpatialBucketSystem;
+    private readonly engagementPressureSystem: EngagementPressureSystem;
     private readonly targetingSystem: TargetingSystem;
     private readonly combatSystem: CombatSystem;
     private readonly damageSystem: DamageSystem;
@@ -103,7 +105,8 @@ export class TugPrototypeSim
 
         this.spawnSystem = new SpawnSystem(this.state, this.context, this.racePresets);
         this.spatialBucketSystem = new SpatialBucketSystem(this.state, this.context);
-        this.targetingSystem = new TargetingSystem(this.state, this.context);
+        this.engagementPressureSystem = new EngagementPressureSystem(this.state);
+        this.targetingSystem = new TargetingSystem(this.state, this.context, this.engagementPressureSystem);
         this.combatSystem = new CombatSystem(this.state, this.context);
         this.damageSystem = new DamageSystem(this.state);
         this.victorySystem = new VictorySystem(this.state, this.context);
@@ -288,6 +291,7 @@ export class TugPrototypeSim
         this.combatSystem.stepExplosionEffects();
         this.spatialBucketSystem.rebuildBuckets();
         this.state.pendingDamage.fill(0, 0, this.state.entityCount);
+        this.engagementPressureSystem.seedFromCurrentTargets();
 
         for (let i = 0; i < this.state.entityCount; i++)
         {
@@ -297,16 +301,20 @@ export class TugPrototypeSim
             }
 
             const teamId = this.state.team[i] as TeamId;
+            const previousTarget = this.state.target[i];
             if (this.combatSystem.applyCoreBreach(i, teamId))
             {
+                this.engagementPressureSystem.onAttackerRemoved(i, previousTarget);
                 continue;
             }
 
             let targetId = this.state.target[i];
             if (!this.targetingSystem.isTargetValid(i, targetId))
             {
-                targetId = this.targetingSystem.acquireTarget(i);
-                this.state.target[i] = targetId;
+                const nextTarget = this.targetingSystem.acquireTarget(i);
+                this.engagementPressureSystem.onTargetChanged(i, targetId, nextTarget);
+                targetId = nextTarget;
+                this.state.target[i] = nextTarget;
             }
 
             if (targetId >= 0)
@@ -314,7 +322,12 @@ export class TugPrototypeSim
                 const dx = this.state.x[targetId] - this.state.x[i];
                 const dy = this.state.y[targetId] - this.state.y[i];
                 const distSq = dx * dx + dy * dy;
-                const rangeSq = this.state.range[i] * this.state.range[i];
+                let effectiveRange = this.state.range[i];
+                if (this.state.attackMedium[i] === ATTACK_MEDIUM_DIRECT)
+                {
+                    effectiveRange += this.state.bodyRadius[targetId];
+                }
+                const rangeSq = effectiveRange * effectiveRange;
 
                 if (distSq <= rangeSq)
                 {
@@ -326,12 +339,12 @@ export class TugPrototypeSim
                 }
                 else
                 {
-                    this.combatSystem.moveByVector(i, dx, dy);
+                    this.combatSystem.moveTowardPointWithSeparation(i, this.state.x[targetId], this.state.y[targetId]);
                 }
             }
             else
             {
-                this.combatSystem.moveTowardEnemyCore(i, teamId);
+                this.combatSystem.moveTowardEnemyCoreWithSeparation(i, teamId);
             }
         }
 

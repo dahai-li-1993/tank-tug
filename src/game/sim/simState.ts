@@ -20,6 +20,7 @@ export function createSimState (config: SimConfigResolved): SimState
         target: new Int32Array(config.maxEntities),
         capacity: new Float32Array(config.maxEntities),
         renderSize: new Float32Array(config.maxEntities),
+        bodyRadius: new Float32Array(config.maxEntities),
         spawnOrder: new Int32Array(config.maxEntities),
         attackMedium: new Uint8Array(config.maxEntities),
         impactMode: new Uint8Array(config.maxEntities),
@@ -56,6 +57,7 @@ export function createSimState (config: SimConfigResolved): SimState
         bucketHeads: new Int32Array(config.bucketCount * 4),
         nextInBucket: new Int32Array(config.maxEntities),
         pendingDamage: new Float32Array(config.maxEntities),
+        targetMeleePressure: new Uint16Array(config.maxEntities),
 
         entityCount: 0,
         tick: 0,
@@ -109,4 +111,5 @@ export function resetSimState (
     state.projectileRemaining.fill(0);
     state.explosionActive.fill(0);
     state.explosionLife.fill(0);
+    state.targetMeleePressure.fill(0);
 }

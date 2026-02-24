@@ -203,17 +203,17 @@ function runScenario (
     assertDeepEqual(
         firstRun,
         {
-            tick: 257,
+            tick: 327,
             winner: 0,
             leftCoreHp: 1200,
             rightCoreHp: 1200,
-            leftAliveCount: 15,
+            leftAliveCount: 12,
             rightAliveCount: 0,
-            leftRemainingCapacity: 38,
+            leftRemainingCapacity: 30,
             rightRemainingCapacity: 0,
             entityCount: 40,
-            checksum: 749942027,
-            timeline: [2267777956, 297229058, 3138145322, 749942027]
+            checksum: 588939588,
+            timeline: [2267777956, 2390510460, 4099505119, 1547319932, 588939588]
         },
         'human vs beast snapshot changed'
     );
@@ -223,17 +223,17 @@ function runScenario (
     assertDeepEqual(
         alienVsHuman,
         {
-            tick: 361,
-            winner: 1,
-            leftCoreHp: 1194,
+            tick: 553,
+            winner: 0,
+            leftCoreHp: 1198,
             rightCoreHp: 1200,
-            leftAliveCount: 0,
-            rightAliveCount: 4,
-            leftRemainingCapacity: 0,
-            rightRemainingCapacity: 12,
+            leftAliveCount: 4,
+            rightAliveCount: 0,
+            leftRemainingCapacity: 12,
+            rightRemainingCapacity: 0,
             entityCount: 40,
-            checksum: 1243011261,
-            timeline: [2768355806, 1742508115, 716770919, 1624722848, 1243011261]
+            checksum: 1076545144,
+            timeline: [2768355806, 2448211921, 3942220431, 3852017576, 3607113080, 1610120643, 1076545144]
         },
         'alien vs human snapshot changed'
     );

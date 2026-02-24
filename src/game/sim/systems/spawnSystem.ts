@@ -5,6 +5,9 @@ import {
     ATTACK_STYLE_MELEE,
     IMPACT_EXPLOSIVE,
     IMPACT_SINGLE,
+    BODY_RADIUS_FROM_RENDER_SIZE,
+    BODY_RADIUS_MAX,
+    BODY_RADIUS_MIN,
     MELEE_LOCKED_RANGE,
     PROJECTILE_BASE_SPEED,
     PROJECTILE_RANGE_SPEED_FACTOR,
@@ -82,6 +85,7 @@ export class SpawnSystem
         this.state.target[i] = -1;
         this.state.capacity[i] = archetype.capacity;
         this.state.renderSize[i] = archetype.renderSize;
+        this.state.bodyRadius[i] = this.computeBodyRadius(archetype.renderSize);
         this.state.spawnOrder[i] = this.state.spawnCounter++;
         this.state.attackMedium[i] = attackProfile.medium;
         this.state.impactMode[i] = attackProfile.impactMode;
@@ -143,5 +147,19 @@ export class SpawnSystem
             projectileSpeed: PROJECTILE_BASE_SPEED + archetype.range * PROJECTILE_RANGE_SPEED_FACTOR,
             hitRadius: Math.max(PROJECTILE_SINGLE_HIT_RADIUS, archetype.renderSize * 1.2)
         };
+    }
+
+    private computeBodyRadius (renderSize: number): number
+    {
+        const raw = renderSize * BODY_RADIUS_FROM_RENDER_SIZE;
+        if (raw < BODY_RADIUS_MIN)
+        {
+            return BODY_RADIUS_MIN;
+        }
+        if (raw > BODY_RADIUS_MAX)
+        {
+            return BODY_RADIUS_MAX;
+        }
+        return raw;
     }
 }

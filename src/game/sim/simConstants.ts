@@ -16,6 +16,16 @@ export const ATTACK_STYLE_RANGED = 'ranged';
 
 export const MELEE_LOCKED_RANGE = 20;
 export const RANGED_MIN_RANGE = 40;
+export const BODY_RADIUS_FROM_RENDER_SIZE = 6.4;
+export const BODY_RADIUS_MIN = 10;
+export const BODY_RADIUS_MAX = 96;
+export const LOCAL_SEPARATION_SLOT_PADDING = 3.5;
+export const LOCAL_SEPARATION_RANGE_FACTOR = 2.1;
+export const LOCAL_GOAL_WEIGHT = 1.0;
+export const LOCAL_SEPARATION_WEIGHT = 1.1;
+export const LOCAL_SEPARATION_NEIGHBOR_LIMIT = 20;
+export const MELEE_TARGET_SOFT_CAP_MAX = 64;
+export const MELEE_TARGET_SATURATION_PENALTY_DISTANCE = 72;
 
 export const PROJECTILE_BASE_SPEED = 3.4;
 export const PROJECTILE_RANGE_SPEED_FACTOR = 0.06;

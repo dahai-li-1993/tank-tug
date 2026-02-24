@@ -8,10 +8,18 @@ import {
     IMPACT_EXPLOSIVE,
     LAYER_FLYING,
     LAYER_GROUNDED,
+    LOCAL_GOAL_WEIGHT,
+    LOCAL_SEPARATION_NEIGHBOR_LIMIT,
+    LOCAL_SEPARATION_RANGE_FACTOR,
+    LOCAL_SEPARATION_SLOT_PADDING,
+    LOCAL_SEPARATION_WEIGHT,
     TEAM_LEFT,
     TEAM_RIGHT
 } from '../simConstants';
 import { SimContext, SimState, TeamId } from '../simTypes';
+
+const OVERLAP_DIR_X = [1, -1, 0, 0, 0.7071, -0.7071, 0.7071, -0.7071];
+const OVERLAP_DIR_Y = [0, 0, 1, -1, 0.7071, 0.7071, -0.7071, -0.7071];
 
 export class CombatSystem
 {
@@ -72,6 +80,45 @@ export class CombatSystem
         const coreX = teamId === TEAM_LEFT ? this.context.rightCoreX : this.context.leftCoreX;
         const coreY = teamId === TEAM_LEFT ? this.context.rightCoreY : this.context.leftCoreY;
         this.moveByVector(i, coreX - this.state.x[i], coreY - this.state.y[i]);
+    }
+
+    moveTowardEnemyCoreWithSeparation (i: number, teamId: TeamId): void
+    {
+        const coreX = teamId === TEAM_LEFT ? this.context.rightCoreX : this.context.leftCoreX;
+        const coreY = teamId === TEAM_LEFT ? this.context.rightCoreY : this.context.leftCoreY;
+        this.moveTowardPointWithSeparation(i, coreX, coreY);
+    }
+
+    moveTowardPointWithSeparation (i: number, targetX: number, targetY: number): void
+    {
+        const goalDx = targetX - this.state.x[i];
+        const goalDy = targetY - this.state.y[i];
+        const goalDistSq = goalDx * goalDx + goalDy * goalDy;
+        if (goalDistSq <= 0.0001)
+        {
+            return;
+        }
+
+        const goalDist = Math.sqrt(goalDistSq);
+        const goalInv = 1 / goalDist;
+        const goalX = goalDx * goalInv;
+        const goalY = goalDy * goalInv;
+
+        const separation = this.computeLocalSeparation(i);
+        let steerX = goalX * LOCAL_GOAL_WEIGHT + separation.x * LOCAL_SEPARATION_WEIGHT;
+        let steerY = goalY * LOCAL_GOAL_WEIGHT + separation.y * LOCAL_SEPARATION_WEIGHT;
+        let steerDistSq = steerX * steerX + steerY * steerY;
+        if (steerDistSq <= 0.0001)
+        {
+            steerX = goalX;
+            steerY = goalY;
+            steerDistSq = 1;
+        }
+
+        const step = Math.min(this.state.speed[i], goalDist);
+        const steerInv = step / Math.sqrt(steerDistSq);
+        this.state.x[i] = this.context.clampX(this.state.x[i] + steerX * steerInv);
+        this.state.y[i] = this.context.clampY(this.state.y[i] + steerY * steerInv);
     }
 
     moveByVector (i: number, dx: number, dy: number): void
@@ -194,6 +241,88 @@ export class CombatSystem
     {
         const cap = this.state.capacity[i];
         return cap >= 100 ? Math.floor(cap * 2.0) : Math.floor(cap * 1.2);
+    }
+
+    private computeLocalSeparation (i: number): { x: number; y: number }
+    {
+        const radius = Math.max(
+            this.state.bodyRadius[i] * LOCAL_SEPARATION_RANGE_FACTOR,
+            this.state.bodyRadius[i] + LOCAL_SEPARATION_SLOT_PADDING
+        );
+        const radiusSq = radius * radius;
+        const radiusBuckets = Math.ceil(radius / this.context.config.bucketSize);
+        const centerBx = this.context.toBucketX(this.state.x[i]);
+        const centerBy = this.context.toBucketY(this.state.y[i]);
+        const group = this.state.team[i] * 2 + this.state.layer[i];
+
+        const minBy = Math.max(0, centerBy - radiusBuckets);
+        const maxBy = Math.min(this.context.config.bucketRows - 1, centerBy + radiusBuckets);
+        const minBx = Math.max(0, centerBx - radiusBuckets);
+        const maxBx = Math.min(this.context.config.bucketCols - 1, centerBx + radiusBuckets);
+
+        let sx = 0;
+        let sy = 0;
+        let contributions = 0;
+        let processed = 0;
+        let stop = false;
+
+        for (let by = minBy; by <= maxBy && !stop; by++)
+        {
+            for (let bx = minBx; bx <= maxBx && !stop; bx++)
+            {
+                const bucket = by * this.context.config.bucketCols + bx;
+                let idx = this.state.bucketHeads[group * this.context.config.bucketCount + bucket];
+                while (idx >= 0)
+                {
+                    if (idx !== i && this.state.alive[idx] !== 0)
+                    {
+                        processed += 1;
+                        if (processed > LOCAL_SEPARATION_NEIGHBOR_LIMIT)
+                        {
+                            stop = true;
+                            break;
+                        }
+
+                        const dx = this.state.x[i] - this.state.x[idx];
+                        const dy = this.state.y[i] - this.state.y[idx];
+                        const distSq = dx * dx + dy * dy;
+                        const minGap = this.state.bodyRadius[i] + this.state.bodyRadius[idx] + LOCAL_SEPARATION_SLOT_PADDING;
+                        if (distSq <= radiusSq && distSq <= minGap * minGap)
+                        {
+                            if (distSq > 0.0001)
+                            {
+                                const dist = Math.sqrt(distSq);
+                                const push = (minGap - dist) / Math.max(0.0001, minGap);
+                                sx += (dx / dist) * push;
+                                sy += (dy / dist) * push;
+                            }
+                            else
+                            {
+                                const dir = this.computeOverlapDirectionIndex(i, idx);
+                                sx += OVERLAP_DIR_X[dir];
+                                sy += OVERLAP_DIR_Y[dir];
+                            }
+                            contributions += 1;
+                        }
+                    }
+                    idx = this.state.nextInBucket[idx];
+                }
+            }
+        }
+
+        if (contributions > 0)
+        {
+            const inv = 1 / contributions;
+            return { x: sx * inv, y: sy * inv };
+        }
+        return { x: 0, y: 0 };
+    }
+
+    private computeOverlapDirectionIndex (a: number, b: number): number
+    {
+        const hash = (Math.imul(this.state.spawnOrder[a] + 1, 73856093)
+            ^ Math.imul(this.state.spawnOrder[b] + 1, 19349663)) >>> 0;
+        return hash & 7;
     }
 
     private spawnProjectile (

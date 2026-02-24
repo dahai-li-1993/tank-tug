@@ -1,18 +1,24 @@
 import {
     ATTACK_FLYING,
     ATTACK_GROUNDED,
+    ATTACK_MEDIUM_DIRECT,
     LAYER_FLYING,
     LAYER_GROUNDED,
+    LOCAL_SEPARATION_SLOT_PADDING,
+    MELEE_TARGET_SATURATION_PENALTY_DISTANCE,
+    MELEE_TARGET_SOFT_CAP_MAX,
     TEAM_LEFT,
     TEAM_RIGHT
 } from '../simConstants';
 import { SimContext, SimState } from '../simTypes';
+import { EngagementPressureSystem } from './engagementPressureSystem';
 
 export class TargetingSystem
 {
     constructor (
         private readonly state: SimState,
-        private readonly context: SimContext
+        private readonly context: SimContext,
+        private readonly engagementPressureSystem: EngagementPressureSystem
     )
     {
     }
@@ -199,14 +205,16 @@ export class TargetingSystem
             return true;
         }
 
+        const candidateScore = this.computeCandidateScore(attacker, candidate, distSq);
         const bestDx = this.state.x[currentBest] - xi;
         const bestDy = this.state.y[currentBest] - yi;
         const bestDistSq = bestDx * bestDx + bestDy * bestDy;
-        if (distSq < bestDistSq)
+        const bestScore = this.computeCandidateScore(attacker, currentBest, bestDistSq);
+        if (candidateScore < bestScore)
         {
             return true;
         }
-        if (distSq > bestDistSq)
+        if (candidateScore > bestScore)
         {
             return false;
         }
@@ -223,5 +231,38 @@ export class TargetingSystem
         }
 
         return this.state.spawnOrder[candidate] < this.state.spawnOrder[currentBest];
+    }
+
+    private computeCandidateScore (attacker: number, candidate: number, distSq: number): number
+    {
+        if (this.state.attackMedium[attacker] !== ATTACK_MEDIUM_DIRECT)
+        {
+            return distSq;
+        }
+
+        const softCap = this.computeMeleeSoftCap(attacker, candidate);
+        const pressure = this.engagementPressureSystem.getMeleePressure(candidate);
+        const overflow = Math.max(0, pressure - softCap + 1);
+        const penaltyDistance = overflow * MELEE_TARGET_SATURATION_PENALTY_DISTANCE;
+        return distSq + penaltyDistance * penaltyDistance;
+    }
+
+    private computeMeleeSoftCap (attacker: number, candidate: number): number
+    {
+        const targetBodyRadius = Math.max(1, this.state.bodyRadius[candidate]);
+        const meleeRange = Math.max(1, this.state.range[attacker]);
+        const attackerBodyRadius = Math.max(1, this.state.bodyRadius[attacker]);
+        const circumference = 2 * Math.PI * (targetBodyRadius + meleeRange);
+        const slotWidth = 2 * (attackerBodyRadius + LOCAL_SEPARATION_SLOT_PADDING);
+        const raw = Math.floor(circumference / Math.max(1, slotWidth));
+        if (raw < 1)
+        {
+            return 1;
+        }
+        if (raw > MELEE_TARGET_SOFT_CAP_MAX)
+        {
+            return MELEE_TARGET_SOFT_CAP_MAX;
+        }
+        return raw;
     }
 }
